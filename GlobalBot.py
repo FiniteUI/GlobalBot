@@ -100,12 +100,26 @@ def saveMessage(message):
 def chunkstring(string, length):
     return (string[0+i:length+i] for i in range(0, len(string), length))
 
+#chunks a string into pieces of size length, but respects line breaks
+def chunkStringNewLine(string, length):
+    splitString = string.split('\n')
+    returnStrings = []
+    tempString = ''
+    for i in splitString:
+        if len(i) + len(tempString) > length:
+            returnStrings.append(tempString)
+            tempString = i
+        else:
+            tempString = tempString + i
+    returnStrings.append(tempString)
+    return returnStrings
+
 #sends a message to the channel
 async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None, triggeredCommand = None):
     addLog(f'''Sending message "{sendMessage}" to channel {triggerMessage.channel} in server {triggerMessage.guild}, {triggerMessage.guild.id}.''', inspect.currentframe().f_code.co_name, server = triggerMessage.guild.name, serverID = triggerMessage.guild.id, channel = triggerMessage.channel.name, channelID = triggerMessage.channel.id, invokedUser = triggerMessage.author.name, invokedUserID = triggerMessage.author.id, invokedUserDiscriminator = triggerMessage.author.discriminator, invokedUserDisplayName = triggerMessage.author.nick, command = triggeredCommand)
 
     if len(sendMessage) > 2000:
-        x = chunkstring(sendMessage, 2000)
+        x = chunkStringNewLine(sendMessage, 2000)
         for i in x:
             await triggerMessage.channel.send(i, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
     else:
@@ -513,16 +527,13 @@ async def update(message, trigger):
     addLog(f'Updating bot source code...', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)          
 
     g = Github(githubToken)
-    #user = g.get_user()
-
-    #repo = user.get_repo("GlobalBot")
     repo = g.get_repo('FiniteUI/GlobalBot')
     contents = repo.get_contents("GlobalBot.py")
     data = contents.decoded_content.decode('UTF-8')
 
     f = open('GlobalBot.py', 'w+')
     f.write(data)
-    f.close()
+    f.close() 
 
     await restart(message, trigger)
 
