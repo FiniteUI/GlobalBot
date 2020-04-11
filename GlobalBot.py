@@ -107,11 +107,11 @@ def chunkStringNewLine(string, length):
     tempString = ''
     for i in splitString:
         if len(i) + len(tempString) > length:
-            returnStrings.append(tempString)
+            returnStrings.append(f'{tempString}\n')
             tempString = i
         else:
             tempString = tempString + i
-    returnStrings.append(tempString)
+    returnStrings.append(f'{tempString}\n')
     return returnStrings
 
 #sends a message to the channel
