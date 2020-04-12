@@ -9,10 +9,13 @@ import random
 import re
 import time
 from datetime import datetime
+from datetime import date
 from dotenv import load_dotenv
 from github import Github
 import base64
 from urlextract import URLExtract
+import asyncio
+import threading
 
 #command class
 class command:
@@ -129,14 +132,14 @@ async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteA
 #sends a message to the channel
 async def sendChannelMessage(message, channelID, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None):
     x = client.get_channel(channelID)
-    addLog(f'''Sending message "{sendMessage}" to channel {x.name} in server {x.guild}, {x.guild.id}.''', inspect.currentframe().f_code.co_name, server = x.guild.name, serverID = x.guild.id, channel = x.name, channelID = x.id)
+    addLog(f'''Sending message "{message}" to channel {x.name} in server {x.guild}, {x.guild.id}.''', inspect.currentframe().f_code.co_name, server = x.guild.name, serverID = x.guild.id, channel = x.name, channelID = x.id)
 
-    if len(sendMessage) > 2000:
-        x = chunkstring(sendMessage, 2000)
+    if len(message) > 2000:
+        x = chunkstring(message, 2000)
         for i in x:
             await x.send(i, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
     else:
-        await x.send(sendMessage, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
+        await x.send(message, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
 
 #lists available commands
 async def help(message, trigger):
@@ -165,6 +168,9 @@ async def listUserCommands(message, trigger):
 async def restart(message, trigger):
     addLog(f'Restarting bot', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
     await sendMessage(message, 'Restarting bot...',  deleteAfter = 20, triggeredCommand = trigger)
+    
+    #wait for message cleanup
+    #sleep(20)
     os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
     sys.stdout.flush()
     exit()
@@ -543,6 +549,22 @@ async def update(message, trigger):
 
     await restart(message, trigger)
 
+#nightly refresh, backup, update, restart
+async def refresh():
+    if len(client.guilds) > 0:
+        for guild in client.guilds:
+            await sendChannelMessage('Starting bot refresh...', guild.text_channels[0].id, deleteAfter = 10)
+            lastMessage = await guild.text_channels[0].fetch_message(guild.text_channels[0].last_message_id)
+            await backup(lastMessage, 'refresh')
+        await update(lastMessage, 'refresh')
+
+#add the regresh into the main event loop
+def callRefresh():
+    global loop
+    if date.today() != launchDate:
+        thisRefresh = asyncio.run_coroutine_threadsafe(refresh(), loop)
+        thisRefresh.result()
+
 #filters to a specific servers user commands
 #async def filterServerUserCommands(commandList):
  #   return 
@@ -553,11 +575,17 @@ token = os.getenv('DISCORD_TOKEN')
 database = os.getenv('GLOBALBOT_DATABASE')
 finiteui = os.getenv('DISCORD_ID')
 githubToken = os.getenv('GITHUB_TOKEN')
+loop = ''
+launchDate = date.today()
 
 client = discord.Client()
 
 @client.event
 async def on_ready():
+    #grab current event loop
+    global loop
+    loop = asyncio.get_event_loop()
+
     addLog(f'{client.user} has connected to Discord!', inspect.currentframe().f_code.co_name)
 
     for x in client.guilds:
@@ -607,6 +635,10 @@ commands.append(command('move', 'Moves a user into a specified voice channel. Fo
 commands.append(command('clearbackup', 'Clears the backup of this server.', 'clearBackup', admin = True))
 commands.append(command('update', 'Updates the source code from Github and restarts', 'update', admin = True))
 loadUserCommands()
+
+#launch the refresh timer
+timer = threading.Timer(300, callRefresh)
+timer.start()
 
 #run the bot            
 addLog('Running client...', inspect.currentframe().f_code.co_name)
