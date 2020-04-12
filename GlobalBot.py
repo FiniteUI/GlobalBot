@@ -12,6 +12,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from github import Github
 import base64
+from urlextract import URLExtract
 
 #command class
 class command:
@@ -151,8 +152,13 @@ async def listUserCommands(message, trigger):
     addLog(f'Listing user commands', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
     x = ''
     s = filter(filterUserFunctions, commands)
+    extractor = URLExtract()
     for i in s:
-        x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.description}\n'''
+        description = i.description
+        urls = extractor.find_urls(i.description)
+        for url in urls:
+            description = description.replace(url, f'<{url}>')
+        x = x + f'''**!{i.trigger.ljust(20)}** - \t{description}\n'''
     await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
 
 #restart the bot
