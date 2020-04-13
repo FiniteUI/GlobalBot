@@ -170,7 +170,6 @@ async def restart(message, trigger):
     await sendMessage(message, 'Restarting bot...',  deleteAfter = 20, triggeredCommand = trigger)
     
     #wait for message cleanup
-    #sleep(20)
     os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
     sys.stdout.flush()
     exit()
@@ -492,21 +491,14 @@ async def deleteLastBotMessage(message, trigger):
 
 #sends a random file attachment from chat
 async def randomAttachment(message, trigger):
-    #attachments = select(f"select distinct id, attachments from (select id, attachments from MESSAGE_HISTORY where channel_id = {message.channel.id} and attachments <> '[]' union select id, attachments from MESSAGES where channel_id = {message.channel.id} and attachments <> '[]')")
-    #attachments = select(f"select distinct id, attachments from (select id, attachments from MESSAGE_HISTORY where attachments <> '[]' union select id, attachments from MESSAGES where  attachments <> '[]')")
-    #attachments = select(f"select distinct url from MESSAGE_ATTACHMENT_HISTORY")
-
     attachments = select(f'select author_id, url from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id')
     index = random.randrange(0, len(attachments), 1)
     attachment = attachments[index][1]
     author = client.get_user(attachments[index][0])
-    #newMessage = await message.channel.fetch_message(attachment)
-    #await sendMessage(message, newMessage.attachments[0].url, triggeredCommand = 'randomattachment')
     await sendMessage(message, f'Courtesy of {author.mention}\n{attachment}', triggeredCommand = trigger)
 
 #sends a random youtube video from chat
 async def randomVideo(message, trigger):
-    #videos = select(f"select distinct content from (select content from MESSAGE_HISTORY where channel_id = {message.channel.id} and content like '%youtube.com%' and author <> 'GlobalBot#9663' union select content from MESSAGES where channel_id = {message.channel.id} and content like '%youtube.com%' and author <> 'GlobalBot#9663')")
     videos = select(f"select distinct content from (select content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663' union select content from MESSAGES where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663')")
     index = random.randrange(0, len(videos), 1)
     video = videos[index][0]
@@ -556,7 +548,6 @@ async def refresh():
             await sendChannelMessage('Starting bot refresh...', guild.text_channels[0].id, deleteAfter = 10)
             lastMessage = await guild.text_channels[0].fetch_message(guild.text_channels[0].last_message_id)
             await backup(lastMessage, 'refresh')
-        #await update(lastMessage, 'refresh')
         await restart(lastMessage, 'refresh')
 
 #add the regresh into the main event loop
@@ -565,10 +556,6 @@ def callRefresh():
     if date.today() != launchDate:
         thisRefresh = asyncio.run_coroutine_threadsafe(refresh(), loop)
         thisRefresh.result()
-
-#filters to a specific servers user commands
-#async def filterServerUserCommands(commandList):
- #   return 
 
 #load client
 load_dotenv('.env')
