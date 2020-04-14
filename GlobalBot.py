@@ -581,7 +581,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    saveMessage(message)
+    #saveMessage(message)
     if message.author == client.user:
         return
     elif message.content.startswith('!'):
