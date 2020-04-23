@@ -173,7 +173,7 @@ async def restart(message, trigger):
     #wait for message cleanup
     #os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
     #subprocess.run("python3 -m GlobalBot.py")
-    subprocess.run(['python3', '-m', '/root/GlobalBot/GlobalBot.py'])
+    subprocess.run(['python3', '-m', '/root/GlobalBot/GlobalBot.py'], shell = True)
 
     await kill(message, trigger)
     #sys.stdout.flush()
