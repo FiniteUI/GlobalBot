@@ -553,10 +553,11 @@ async def refresh():
             await sendChannelMessage('Starting bot refresh...', guild.text_channels[0].id, deleteAfter = 10)
             lastMessage = await guild.text_channels[0].fetch_message(guild.text_channels[0].last_message_id)
             await backup(lastMessage, 'refresh')
-        await restart(lastMessage, 'refresh')
+        #await restart(lastMessage, 'refresh')
 
 #add the regresh into the main event loop
 def callRefresh():
+    print('Checking refresh...')
     global loop
     if date.today() != launchDate:
         thisRefresh = asyncio.run_coroutine_threadsafe(refresh(), loop)
