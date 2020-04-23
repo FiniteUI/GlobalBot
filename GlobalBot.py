@@ -559,7 +559,7 @@ async def refresh():
 def callRefresh():
     print('Checking refresh...')
     print(f'Current date: {launchDate}')
-    print(f'Launched at: {date.today}')
+    print(f'Launched at: {date.today()}')
     global loop
     if date.today() != launchDate:
         thisRefresh = asyncio.run_coroutine_threadsafe(refresh(), loop)
