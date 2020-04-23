@@ -123,8 +123,9 @@ def chunkStringNewLine(string, length):
 async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None, triggeredCommand = None, codeBlock = False):
     addLog(f'''Sending message "{sendMessage}" to channel {triggerMessage.channel} in server {triggerMessage.guild}, {triggerMessage.guild.id}.''', inspect.currentframe().f_code.co_name, server = triggerMessage.guild.name, serverID = triggerMessage.guild.id, channel = triggerMessage.channel.name, channelID = triggerMessage.channel.id, invokedUser = triggerMessage.author.name, invokedUserID = triggerMessage.author.id, invokedUserDiscriminator = triggerMessage.author.discriminator, invokedUserDisplayName = triggerMessage.author.nick, command = triggeredCommand)
 
-    if len(sendMessage) > 2000:
-        x = chunkStringNewLine(sendMessage, 2000)
+    #message limit is 2000 characters, we may add 2 if codeBlock, so our limit is 1998
+    if len(sendMessage) > 1998:
+        x = chunkStringNewLine(sendMessage, 1998)
         for i in x:
             if codeBlock:
                 await triggerMessage.channel.send(f'`{i}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
@@ -154,9 +155,9 @@ async def help(message, trigger):
     x = ''
     s = filter(filterStandardFunctions, commands)
     for i in s:
-        #x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.description}\n'''
-        x = x + f'''!{i.trigger.ljust(20)} - \t{i.description}\n'''
-    await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger, codeBlock = True)
+        x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.description}\n'''
+        #x = x + f'''!{i.trigger.ljust(20)} - \t{i.description}\n'''
+    await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
 
 #lists available user commands
 async def listUserCommands(message, trigger):
@@ -169,9 +170,9 @@ async def listUserCommands(message, trigger):
         urls = extractor.find_urls(i.description)
         for url in urls:
             description = description.replace(url, f'<{url}>')
-        #x = x + f'''**!{i.trigger.ljust(20)}** - \t{description}\n'''
-        x = x + f'''!{i.trigger.ljust(20)} - \t{description}\n'''
-    await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger, codeBlock = True)
+        x = x + f'''**!{i.trigger.ljust(20)}** - \t{description}\n'''
+        #x = x + f'''!{i.trigger.ljust(20)} - \t{description}\n'''
+    await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
 
 #restart the bot
 async def restart(message, trigger):
@@ -674,7 +675,7 @@ commands.append(command('randomvideo', 'Sends a random youtube video from the ch
 commands.append(command('move', 'Moves a user into a specified voice channel. Format: !move channel @user', 'move', admin = True))
 commands.append(command('clearbackup', 'Clears the backup of this server.', 'clearBackup', admin = True))
 commands.append(command('update', 'Updates the source code from Github and restarts', 'update', admin = True))
-commands.append(command('uptime', 'Displays the launch time and uptime of the bot.', 'uptime'))
+commands.append(command('uptime', 'Displays the launch time and uptime of the bot', 'uptime'))
 loadUserCommands()
 
 #launch the refresh timer
