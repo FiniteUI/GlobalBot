@@ -601,17 +601,32 @@ async def on_message(message):
                 break
 
 @client.event
-async def on_voice_state_update(member, voiceStateBefore, vocieStateAfter):
+async def on_voice_state_update(member, voiceStateBefore, voiceStateAfter):
     addLog(f'{member.guild} user {member.name} voice state change.', inspect.currentframe().f_code.co_name, server = member.guild.name, serverID = member.guild.id, invokedUser = member.name, invokedUserID = member.id, invokedUserDiscriminator = member.discriminator, invokedUserDisplayName = member.nick)
     con = openConnection()
     cur = con.cursor()
 
-    record = [datetime.now(), member.guild, member.guild.id, member.guild.name, member.id, member.name, member.discriminator, member.display_name, member.bot, voiceStateBefore.deaf, voiceStateBefore.mute, voiceStateBefore.self_mute, voiceStateBefore.self_deaf, voiceStateBefore.self_stream, voiceStateBefore.self_video, voiceStateBefore.afk, voiceStateBefore.channel, voiceStateBefore.channel.id, voiceStateBefore.channel.name, vocieStateAfter.deaf, vocieStateAfter.mute, vocieStateAfter.self_mute, vocieStateAfter.self_deaf, vocieStateAfter.self_stream, vocieStateAfter.self_video, vocieStateAfter.afk, vocieStateAfter.channel, vocieStateAfter.channel.id, vocieStateAfter.channel.name]
+    if (voiceStateBefore.channel == None):
+        beforeChannelID = None
+        beforeChannelName = None
+    else:
+        beforeChannelID = voiceStateBefore.channel.id
+        beforeChannelName = voiceStateBefore.channel.name
 
-    cur.execute('insert into VOICE_ACTIVITY (RECORD_TIMESTAMP, GUILD, GUILD_ID, GUILD_NAME, USER_ID, USER_NAME, USER_DISCRIMINATOR, USER_DISPLAY_NAME, BOT, MOBILE, BEFORE_DEAF, BEFORE_MUTE, BEFORE_SELF_MUTE, BEFORE_SELF_DEAF, BEFORE_SELF_STREAM, BEFORE_SELF_VIDEO, BEFORE_AFK, BEFORE_CHANNEL, BEFORE_CHANNEL_ID, BEFORE_CHANNEL_NAME, AFTER_DEAF, AFTER_MUTE, AFTER_SELF_MUTE, AFTER_SELF_DEAF, AFTER_SELF_STREAM, AFTER_SELF_VIDEO, AFTER_AFK, AFTER_CHANNEL, AFTER_CHANNEL_ID, AFTER_CHANNEL_NAME) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
+    if (voiceStateAfter.channel == None):
+        afterChannelID = None
+        afterChannelName = None
+    else:
+        afterChannelID = voiceStateAfter.channel.id
+        afterChannelName = voiceStateAfter.channel.name
+
+    record = [datetime.now(), str(member.guild), member.guild.id, member.guild.name, member.id, member.name, member.discriminator, member.display_name, member.bot, member.is_on_mobile(), voiceStateBefore.deaf, voiceStateBefore.mute, voiceStateBefore.self_mute, voiceStateBefore.self_deaf, voiceStateBefore.self_stream, voiceStateBefore.self_video, voiceStateBefore.afk, str(voiceStateBefore.channel), beforeChannelID, beforeChannelName, voiceStateAfter.deaf, voiceStateAfter.mute, voiceStateAfter.self_mute, voiceStateAfter.self_deaf, voiceStateAfter.self_stream, voiceStateAfter.self_video, voiceStateAfter.afk, str(voiceStateAfter.channel), afterChannelID, afterChannelName]
+
+    cur.execute('insert into VOICE_ACTIVITY (RECORD_TIMESTAMP, GUILD, GUILD_ID, GUILD_NAME, USER_ID, USER_NAME, USER_DISCRIMINATOR, USER_DISPLAY_NAME, BOT, MOBILE, BEFORE_DEAF, BEFORE_MUTE, BEFORE_SELF_MUTE, BEFORE_SELF_DEAF, BEFORE_SELF_STREAM, BEFORE_SELF_VIDEO, BEFORE_AFK, BEFORE_CHANNEL, BEFORE_CHANNEL_ID, BEFORE_CHANNEL_NAME, AFTER_DEAF, AFTER_MUTE, AFTER_SELF_MUTE, AFTER_SELF_DEAF, AFTER_SELF_STREAM, AFTER_SELF_VIDEO, AFTER_AFK, AFTER_CHANNEL, AFTER_CHANNEL_ID, AFTER_CHANNEL_NAME) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
 
     con.commit()
     closeConnection(con)
+    
 #load commands
 commands = []
 commands.append(command('help', 'Displays a list of available commands', 'help'))
