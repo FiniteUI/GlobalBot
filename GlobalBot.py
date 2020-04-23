@@ -171,8 +171,10 @@ async def restart(message, trigger):
     
     #wait for message cleanup
     os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
-    sys.stdout.flush()
-    exit()
+    
+    await kill(message, trigger)
+    #sys.stdout.flush()
+    #exit()
 
 #add a new simple message command
 async def addUserCommand(message, commandTrigger):
