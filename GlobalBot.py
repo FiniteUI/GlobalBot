@@ -171,9 +171,9 @@ async def restart(message, trigger):
     await sendMessage(message, 'Restarting bot...',  deleteAfter = 20, triggeredCommand = trigger)
     
     #wait for message cleanup
-    #os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
+    os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
     #subprocess.run("python3 -m GlobalBot.py")
-    subprocess.run(['python3', '-m', '/root/GlobalBot/GlobalBot.py'], shell = True)
+    #subprocess.run(['python3', '-m', '/root/GlobalBot/GlobalBot.py'], shell = True)
 
     await kill(message, trigger)
     #sys.stdout.flush()
