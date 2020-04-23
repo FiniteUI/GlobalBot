@@ -16,6 +16,7 @@ import base64
 from urlextract import URLExtract
 import asyncio
 import threading
+import subprocess
 
 #command class
 class command:
@@ -170,8 +171,9 @@ async def restart(message, trigger):
     await sendMessage(message, 'Restarting bot...',  deleteAfter = 20, triggeredCommand = trigger)
     
     #wait for message cleanup
-    os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
-    
+    #os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
+    subprocess.call("python3 -m GlobalBot.py")
+
     await kill(message, trigger)
     #sys.stdout.flush()
     #exit()
