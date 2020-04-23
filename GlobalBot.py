@@ -568,6 +568,10 @@ def callRefresh():
         timer = threading.Timer(refreshInterval, callRefresh)
         timer.start()
 
+async def uptime(message, trigger):
+    uptime = datetime.now() - launchTime
+    await sendMessage(message, f'`The current instance of the bot was launched at {launchTime} UTC. Current uptime is {uptime}.`', triggeredCommand = trigger)
+
 #load client
 load_dotenv('.env')
 token = os.getenv('DISCORD_TOKEN')
@@ -577,6 +581,7 @@ githubToken = os.getenv('GITHUB_TOKEN')
 loop = ''
 launchDate = date.today()
 refreshInterval = 300
+launchTime = datetime.now()
 
 client = discord.Client()
 
@@ -661,6 +666,7 @@ commands.append(command('randomvideo', 'Sends a random youtube video from the ch
 commands.append(command('move', 'Moves a user into a specified voice channel. Format: !move channel @user', 'move', admin = True))
 commands.append(command('clearbackup', 'Clears the backup of this server.', 'clearBackup', admin = True))
 commands.append(command('update', 'Updates the source code from Github and restarts', 'update', admin = True))
+commands.append(command('uptime', 'Displays the launch time and uptime of the bot.', 'uptime'))
 loadUserCommands()
 
 #launch the refresh timer
