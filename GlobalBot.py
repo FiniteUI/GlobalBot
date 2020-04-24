@@ -175,11 +175,14 @@ async def listUserCommands(message, trigger):
     await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
 
 #restart the bot
-async def restart(message, trigger):
+async def restart(message, trigger, silent = False):
     addLog(f'Restarting bot', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-    await sendMessage(message, 'Restarting bot...',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
+    if not silent:
+        await sendMessage(message, 'Restarting bot...',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
     
     #wait for message cleanup
+    await asyncio.sleep(20)
+
     os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
     #subprocess.run("python3 -m GlobalBot.py")
     #subprocess.run(['python3', '-m', '/root/GlobalBot/GlobalBot.py'], shell = True)
@@ -350,11 +353,12 @@ def grabTopStoredMesage(guild):
         return x[0][0]
 
 #launches a backup of the server
-async def backup(message, trigger):
+async def backup(message, trigger, silent = False):
     recordLimit = 10000
 
     addLog(f'Backing up server {message.guild.name}...', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-    await sendMessage(message, f'Backing up server {message.guild.name}...', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
+    if not silent:
+        await sendMessage(message, f'Backing up server {message.guild.name}...', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
     startTime = time.time()
     top = grabTopStoredMesage(message.guild)
     records = []
@@ -462,7 +466,8 @@ async def backup(message, trigger):
     closeConnection(con)
     totaltime = time.time() - startTime
     await sendMessage(message, f'Server {message.guild.name} backed up in {totaltime} seconds.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
-    addLog(f'Server {message.guild.name} backed up in {totaltime} seconds.', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+    if not silent:
+        addLog(f'Server {message.guild.name} backed up in {totaltime} seconds.', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
 
 #clears the backup of this server
 async def clearBackup(message, trigger):
@@ -556,13 +561,13 @@ async def update(message, trigger):
     await restart(message, trigger)
 
 #nightly refresh, backup, update, restart
-async def refresh():
+async def refresh(message = None, trigger = None):
     if len(client.guilds) > 0:
         for guild in client.guilds:
             await sendChannelMessage('Starting bot refresh...', guild.text_channels[0].id, deleteAfter = 10)
             lastMessage = await guild.text_channels[0].fetch_message(guild.text_channels[0].last_message_id)
-            await backup(lastMessage, 'refresh')
-        await restart(lastMessage, 'refresh')
+            await backup(lastMessage, 'refresh', silent = True)
+        await restart(lastMessage, 'refresh', silent = True)
 
 #add the regresh into the main event loop
 def callRefresh():
@@ -587,6 +592,7 @@ token = os.getenv('DISCORD_TOKEN')
 database = os.getenv('GLOBALBOT_DATABASE')
 finiteui = os.getenv('DISCORD_ID')
 githubToken = os.getenv('GITHUB_TOKEN')
+testServer = os.getenv('DISCORD_TEST_SERVER_ID')
 loop = ''
 launchDate = date.today()
 refreshInterval = 300
@@ -676,6 +682,7 @@ commands.append(command('move', 'Moves a user into a specified voice channel. Fo
 commands.append(command('clearbackup', 'Clears the backup of this server.', 'clearBackup', admin = True))
 commands.append(command('update', 'Updates the source code from Github and restarts', 'update', admin = True))
 commands.append(command('uptime', 'Displays the launch time and uptime of the bot', 'uptime'))
+commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', 'refresh', admin = True))
 loadUserCommands()
 
 #launch the refresh timer
