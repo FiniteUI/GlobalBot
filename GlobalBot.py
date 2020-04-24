@@ -188,8 +188,6 @@ async def restart(message, trigger, silent = False):
     #subprocess.run(['python3', '-m', '/root/GlobalBot/GlobalBot.py'], shell = True)
 
     await kill(message, trigger)
-    #sys.stdout.flush()
-    #exit()
 
 #add a new simple message command
 async def addUserCommand(message, commandTrigger):
@@ -465,9 +463,9 @@ async def backup(message, trigger, silent = False):
     con.commit()
     closeConnection(con)
     totaltime = time.time() - startTime
-    await sendMessage(message, f'Server {message.guild.name} backed up in {totaltime} seconds.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
     if not silent:
-        addLog(f'Server {message.guild.name} backed up in {totaltime} seconds.', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+        await sendMessage(message, f'Server {message.guild.name} backed up in {totaltime} seconds.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
+    addLog(f'Server {message.guild.name} backed up in {totaltime} seconds.', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
 
 #clears the backup of this server
 async def clearBackup(message, trigger):
@@ -571,9 +569,6 @@ async def refresh(message = None, trigger = None):
 
 #add the regresh into the main event loop
 def callRefresh():
-    #print('Checking refresh...')
-    #print(f'Current date: {launchDate}')
-    #print(f'Launched at: {date.today()}')
     global loop
     if date.today() != launchDate:
         thisRefresh = asyncio.run_coroutine_threadsafe(refresh(), loop)
@@ -614,7 +609,7 @@ async def on_ready():
 @client.event
 async def on_message(message):
     #saveMessage(message)
-    if message.author == client.user:
+    if message.author.bot:
         return
     elif message.content.startswith('!'):
         command = message.content[1:len(message.content)].split(' ')[0].lower()
