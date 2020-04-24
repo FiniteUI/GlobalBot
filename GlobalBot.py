@@ -181,7 +181,7 @@ async def restart(message, trigger, silent = False):
         await sendMessage(message, 'Restarting bot...',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
     
     #wait for message cleanup
-    await asyncio.sleep(20)
+    await asyncio.sleep(30)
 
     os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
     #subprocess.run("python3 -m GlobalBot.py")
