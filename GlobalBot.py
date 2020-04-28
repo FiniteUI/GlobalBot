@@ -647,9 +647,35 @@ async def on_voice_state_update(member, voiceStateBefore, voiceStateAfter):
         afterChannelID = voiceStateAfter.channel.id
         afterChannelName = voiceStateAfter.channel.name
 
-    record = [datetime.now(), str(member.guild), member.guild.id, member.guild.name, member.id, member.name, member.discriminator, member.display_name, member.bot, member.is_on_mobile(), voiceStateBefore.deaf, voiceStateBefore.mute, voiceStateBefore.self_mute, voiceStateBefore.self_deaf, voiceStateBefore.self_stream, voiceStateBefore.self_video, voiceStateBefore.afk, str(voiceStateBefore.channel), beforeChannelID, beforeChannelName, voiceStateAfter.deaf, voiceStateAfter.mute, voiceStateAfter.self_mute, voiceStateAfter.self_deaf, voiceStateAfter.self_stream, voiceStateAfter.self_video, voiceStateAfter.afk, str(voiceStateAfter.channel), afterChannelID, afterChannelName]
+    #set event
+    if (voiceStateBefore.channel != None and voiceStateAfter.channel == None):
+        event = 'LEAVE_VOICE'
+    elif (voiceStateBefore.channel == None and voiceStateAfter.channel != None):
+        event = 'JOIN_VOICE'
+    elif (voiceStateBefore.channel != voiceStateAfter.channel):
+        event = 'CHANNEL_CHANGE'
+    elif (not voiceStateBefore.self_deaf and voiceStateAfter.self_deaf):
+        event = 'DEAFEN'
+    elif (voiceStateBefore.self_deaf and not voiceStateAfter.self_deaf):
+        event = 'UNDEAFEN'
+    elif (not voiceStateBefore.self_mute and voiceStateAfter.self_mute):
+        event = 'MUTE'
+    elif (voiceStateBefore.self_mute and not voiceStateAfter.self_mute):
+        event = 'UNMUTE'
+    elif (not voiceStateBefore.self_stream and voiceStateAfter.self_stream):
+        event = 'STREAM_START'
+    elif (voiceStateBefore.self_stream and not voiceStateAfter.self_stream):
+        event = 'STREAM_END'
+    elif (not voiceStateBefore.self_video and voiceStateAfter.self_video):
+        event = 'VIDEO_START'
+    elif (voiceStateBefore.self_video and not voiceStateAfter.self_video):
+        event = 'VIDEO_END'
+    else:
+        event = 'OTHER'
 
-    cur.execute('insert into VOICE_ACTIVITY (RECORD_TIMESTAMP, GUILD, GUILD_ID, GUILD_NAME, USER_ID, USER_NAME, USER_DISCRIMINATOR, USER_DISPLAY_NAME, BOT, MOBILE, BEFORE_DEAF, BEFORE_MUTE, BEFORE_SELF_MUTE, BEFORE_SELF_DEAF, BEFORE_SELF_STREAM, BEFORE_SELF_VIDEO, BEFORE_AFK, BEFORE_CHANNEL, BEFORE_CHANNEL_ID, BEFORE_CHANNEL_NAME, AFTER_DEAF, AFTER_MUTE, AFTER_SELF_MUTE, AFTER_SELF_DEAF, AFTER_SELF_STREAM, AFTER_SELF_VIDEO, AFTER_AFK, AFTER_CHANNEL, AFTER_CHANNEL_ID, AFTER_CHANNEL_NAME) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
+    record = [datetime.now(), str(member.guild), member.guild.id, member.guild.name, member.id, member.name, member.discriminator, member.display_name, member.bot, member.is_on_mobile(), voiceStateBefore.deaf, voiceStateBefore.mute, voiceStateBefore.self_mute, voiceStateBefore.self_deaf, voiceStateBefore.self_stream, voiceStateBefore.self_video, voiceStateBefore.afk, str(voiceStateBefore.channel), beforeChannelID, beforeChannelName, voiceStateAfter.deaf, voiceStateAfter.mute, voiceStateAfter.self_mute, voiceStateAfter.self_deaf, voiceStateAfter.self_stream, voiceStateAfter.self_video, voiceStateAfter.afk, str(voiceStateAfter.channel), afterChannelID, afterChannelName, event]
+
+    cur.execute('insert into VOICE_ACTIVITY (RECORD_TIMESTAMP, GUILD, GUILD_ID, GUILD_NAME, USER_ID, USER_NAME, USER_DISCRIMINATOR, USER_DISPLAY_NAME, BOT, MOBILE, BEFORE_DEAF, BEFORE_MUTE, BEFORE_SELF_MUTE, BEFORE_SELF_DEAF, BEFORE_SELF_STREAM, BEFORE_SELF_VIDEO, BEFORE_AFK, BEFORE_CHANNEL, BEFORE_CHANNEL_ID, BEFORE_CHANNEL_NAME, AFTER_DEAF, AFTER_MUTE, AFTER_SELF_MUTE, AFTER_SELF_DEAF, AFTER_SELF_STREAM, AFTER_SELF_VIDEO, AFTER_AFK, AFTER_CHANNEL, AFTER_CHANNEL_ID, AFTER_CHANNEL_NAME, EVENT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
 
     con.commit()
     closeConnection(con)
