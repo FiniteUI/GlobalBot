@@ -175,8 +175,12 @@ async def listUserCommands(message, trigger):
     await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
 
 #restart the bot
-async def restart(message, trigger, silent = False):
-    addLog(f'Restarting bot', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+async def restart(message = None, trigger = None, silent = False, fromMessage = True):
+    if not fromMessage:
+        addLog(f'Restarting bot', inspect.currentframe().f_code.co_name, trigger, invokedUser = client.user.name, invokedUserDiscriminator = client.user.discriminator, invokedUserID = client.user.id)
+    else:
+        addLog(f'Restarting bot', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+    
     if not silent:
         await sendMessage(message, 'Restarting bot...',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
     
@@ -351,26 +355,42 @@ def grabTopStoredMesage(guild):
         return x[0][0]
 
 #launches a backup of the server
-async def backup(message, trigger, silent = False):
+async def backup(message = None, trigger = None, silent = False, fromMessage = True, overrideGuild = None):
+    if fromMessage:
+        guild = message.guild
+        invokedUser = message.author
+        messageID = message.id
+        displayName = message.author.nick
+        channelName = message.channel.name
+        channelID = message.channel.id
+    else:
+        guild = overrideGuild
+        invokedUser = client.user
+        displayName = None
+        messageID = None
+        silent = True
+        channelName = None
+        channelID = None
+
     recordLimit = 10000
 
-    addLog(f'Backing up server {message.guild.name}...', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+    addLog(f'Backing up server {guild.name}...', inspect.currentframe().f_code.co_name, trigger, server = guild.name, serverID = guild.id, channel = channelName, channelID = channelID, invokedUser = invokedUser.name, invokedUserID = invokedUser.id, invokedUserDiscriminator = invokedUser.discriminator, invokedUserDisplayName = displayName, messageID = messageID)
     if not silent:
-        await sendMessage(message, f'Backing up server {message.guild.name}...', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
+        await sendMessage(message, f'Backing up server {guild.name}...', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
     startTime = time.time()
-    top = grabTopStoredMesage(message.guild)
+    top = grabTopStoredMesage(guild)
     records = []
     attachments = []
     reactions = []
 
-    for i in message.guild.text_channels:
+    for i in guild.text_channels:
         if top == None:
             history = await i.history(limit = None, oldest_first = True).flatten()
         else:
             history = await i.history(limit = None, oldest_first = True, after = datetime.strptime(top, '%Y-%m-%d %H:%M:%S.%f')).flatten()
         for j in history:
-            if message.type == 'call':
-                call = message.call
+            if j.type == 'call':
+                call = j.call
             else:
                 call = None
             records.append([datetime.now(), j.tts, str(j.type), str(j.author), str(j.content), j.nonce, str(j.embeds), str(j.channel), call, j.mention_everyone, str(j.mentions), str(j.channel_mentions), str(j.role_mentions), j.id, j.webhook_id, str(j.attachments), j.pinned, str(j.flags), str(j.reactions), str(j.activity), j.application, str(j.guild), str(j.raw_mentions), str(j.raw_channel_mentions), str(j.raw_role_mentions), j.clean_content, j.created_at, j.edited_at, j.jump_url, str(j.is_system()), j.system_content, str(j), j.guild.id, j.author.id, j.author.discriminator, j.author.display_name, j.channel.id])
@@ -379,7 +399,7 @@ async def backup(message, trigger, silent = False):
             for a in j.attachments:
                 #rawData = await a.read()
                 rawData = None
-                attachments.append([a.id, a.size, a.height, a.width, a.filename, a.url, a.proxy_url, a.is_spoiler(), rawData, j.id, str(a), message.guild.id])
+                attachments.append([a.id, a.size, a.height, a.width, a.filename, a.url, a.proxy_url, a.is_spoiler(), rawData, j.id, str(a), j.guild.id])
 
             #save reactions
             for r in j.reactions:
@@ -425,10 +445,10 @@ async def backup(message, trigger, silent = False):
                         is_usable = None
                         unicode = r.emoji
 
-                    reactions.append([name, j.id, r.custom_emoji, None, u.name, u.discriminator, u.display_name, id, require_colons, animated, managed, guild_id, available, user_name, u.id, user_id, user_discriminator, user_display_name, created_at, str(url), str(roles), is_usable, str(r), str(r.emoji), r.me, unicode, message.guild.id])
+                    reactions.append([name, j.id, r.custom_emoji, None, u.name, u.discriminator, u.display_name, id, require_colons, animated, managed, guild_id, available, user_name, u.id, user_id, user_discriminator, user_display_name, created_at, str(url), str(roles), is_usable, str(r), str(r.emoji), r.me, unicode, j.id])
 
             if len(records) + len(attachments) + len(reactions) > recordLimit:
-                addLog(f'Record limit reached, saving partial and continuing...', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+                addLog(f'Record limit reached, saving partial and continuing...', inspect.currentframe().f_code.co_name, trigger, server = guild.name, serverID = guild.id, channel = channelName, channelID = channelID, invokedUser = invokedUser.name, invokedUserID = invokedUser.id, invokedUserDiscriminator = invokedUser.discriminator, invokedUserDisplayName = displayName, messageID = messageID)
 
                 con = openConnection()
                 cur = con.cursor()
@@ -464,8 +484,8 @@ async def backup(message, trigger, silent = False):
     closeConnection(con)
     totaltime = time.time() - startTime
     if not silent:
-        await sendMessage(message, f'Server {message.guild.name} backed up in {totaltime} seconds.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
-    addLog(f'Server {message.guild.name} backed up in {totaltime} seconds.', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+        await sendMessage(message, f'Server {guild.name} backed up in {totaltime} seconds.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
+    addLog(f'Server {guild.name} backed up in {totaltime} seconds.', inspect.currentframe().f_code.co_name, trigger, server = guild.name, serverID = guild.id, channel = channelName, channelID = channelID, invokedUser = invokedUser.name, invokedUserID = invokedUser.id, invokedUserDiscriminator = invokedUser.discriminator, invokedUserDisplayName = displayName, messageID = messageID)
 
 #clears the backup of this server
 async def clearBackup(message, trigger):
@@ -562,10 +582,11 @@ async def update(message, trigger):
 async def refresh(message = None, trigger = None):
     if len(client.guilds) > 0:
         for guild in client.guilds:
-            await sendChannelMessage('Starting bot refresh...', guild.text_channels[0].id, deleteAfter = 10)
-            lastMessage = await guild.text_channels[0].fetch_message(guild.text_channels[0].last_message_id)
-            await backup(lastMessage, 'refresh', silent = True)
-        await restart(lastMessage, 'refresh', silent = True)
+            #await sendChannelMessage('Starting bot refresh...', guild.text_channels[0].id, deleteAfter = 10)
+            #lastMessage = await guild.text_channels[0].fetch_message(guild.text_channels[0].last_message_id)
+            await backup(trigger = 'refresh', silent = True, fromMessage = False, overrideGuild = guild)
+        #await restart(lastMessage, 'refresh', silent = True)
+        await restart(trigger = 'refresh', silent = True, fromMessage = False)
 
 #add the regresh into the main event loop
 def callRefresh():
