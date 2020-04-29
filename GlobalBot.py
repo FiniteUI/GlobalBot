@@ -652,7 +652,7 @@ async def on_message(message):
 
 @client.event
 async def on_voice_state_update(member, voiceStateBefore, voiceStateAfter):
-    addLog(f'{member.guild} user {member.name} voice state change.', inspect.currentframe().f_code.co_name, server = member.guild.name, serverID = member.guild.id, invokedUser = member.name, invokedUserID = member.id, invokedUserDiscriminator = member.discriminator, invokedUserDisplayName = member.nick)
+    #addLog(f'{member.guild} user {member.name} voice state change.', inspect.currentframe().f_code.co_name, server = member.guild.name, serverID = member.guild.id, invokedUser = member.name, invokedUserID = member.id, invokedUserDiscriminator = member.discriminator, invokedUserDisplayName = member.nick)
     con = openConnection()
     cur = con.cursor()
 
