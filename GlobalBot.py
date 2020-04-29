@@ -188,7 +188,7 @@ async def restart(message = None, trigger = None, silent = False, fromMessage = 
     await asyncio.sleep(30)
 
     #os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
-    os.execlp('python3', '-m', 'C:\GlobalBot\GlobalBot.py')
+    os.execlp('python3', '-m', 'C:/GlobalBot/GlobalBot.py')
 
     #subprocess.run("python3 -m GlobalBot.py")
     #subprocess.run(['python3', '-m', '/root/GlobalBot/GlobalBot.py'], shell = True)
