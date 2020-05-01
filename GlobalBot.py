@@ -538,7 +538,8 @@ async def randomAttachment(message, trigger):
 
 #sends a random youtube video from chat
 async def randomVideo(message, trigger):
-    videos = select(f"select distinct content from (select content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663' union select content from MESSAGES where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663')")
+    #videos = select(f"select distinct content from (select content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663' union select content from MESSAGES where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663')")
+    videos = select(f"select distinct content from (select content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663'")
     index = random.randrange(0, len(videos), 1)
     video = videos[index][0]
     await sendMessage(message, video, triggeredCommand = trigger)
@@ -707,8 +708,8 @@ async def on_voice_state_update(member, voiceStateBefore, voiceStateAfter):
 commands = []
 commands.append(command('help', 'Displays a list of available commands', 'help'))
 commands.append(command('restart', 'Restarts the bot', 'restart', admin = True))
-commands.append(command('addmessagecommand', 'Adds a new simple message command. Format: !addmessagecommand command, message', 'addUserCommand'))
-commands.append(command('deletemessagecommand', 'Deletes a user message command. Format: !deletemessagecommand command', 'deleteUserCommand'))
+commands.append(command('addusercommand', 'Adds a new simple message command. Format: !addusercommand command, message', 'addUserCommand'))
+commands.append(command('deleteusercommand', 'Deletes a user message command. Format: !deleteusercommand command', 'deleteUserCommand'))
 commands.append(command('pin', 'Sends a random pinned message', 'sendRandomPinnedMessage'))
 commands.append(command('kick', 'Kicks a user from voice. Format: !kick @user', 'kickUser'))
 commands.append(command('usercommands', 'Displays a list of available user commands', 'listUserCommands'))
