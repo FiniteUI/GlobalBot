@@ -542,7 +542,9 @@ async def randomVideo(message, trigger):
     videos = select(f"select distinct content from (select content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663')")
     index = random.randrange(0, len(videos), 1)
     video = videos[index][0]
-    await sendMessage(message, video, triggeredCommand = trigger)
+    extractor = URLExtract()
+    urls = extractor.find_urls(video)
+    await sendMessage(message, urls[0], triggeredCommand = trigger)
 
 #Moves a user into a specified voice channel
 async def move(message, trigger):
