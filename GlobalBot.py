@@ -541,12 +541,12 @@ async def randomAttachment(message, trigger):
     central = pytz.timezone('US/Central')
     utc_timestamp = utc.localize(utc_timestamp)
     central_timestamp = utc_timestamp.astimezone(central)
+    central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
     await sendMessage(message, f'Courtesy of {author.mention} at {central_timestamp}\n{attachment}', triggeredCommand = trigger)
 
 #sends a random youtube video from chat
 async def randomVideo(message, trigger):
-    #videos = select(f"select distinct content from (select content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663' union select content from MESSAGES where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663')")
     videos = select(f"select distinct content from (select content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663')")
     index = random.randrange(0, len(videos), 1)
     video = videos[index][0]
