@@ -542,7 +542,7 @@ async def randomAttachment(message, trigger):
     utc_timestamp = utc.localize(utc_timestamp)
     central_timestamp = utc_timestamp.astimezone(central)
 
-    await sendMessage(message, f'Courtesy of {author.mention}\n{attachment} at {central_timestamp}', triggeredCommand = trigger)
+    await sendMessage(message, f'Courtesy of {author.mention} at {central_timestamp}\n{attachment}', triggeredCommand = trigger)
 
 #sends a random youtube video from chat
 async def randomVideo(message, trigger):
