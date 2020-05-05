@@ -17,6 +17,7 @@ from urlextract import URLExtract
 import asyncio
 import threading
 import subprocess
+import pytz
 
 #command class
 class command:
@@ -530,11 +531,17 @@ async def deleteLastBotMessage(message, trigger):
 
 #sends a random file attachment from chat
 async def randomAttachment(message, trigger):
-    attachments = select(f'select author_id, url from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id')
+    attachments = select(f'select author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id')
     index = random.randrange(0, len(attachments), 1)
     attachment = attachments[index][1]
     author = client.get_user(attachments[index][0])
-    await sendMessage(message, f'Courtesy of {author.mention}\n{attachment}', triggeredCommand = trigger)
+
+    #createdAt = attachments[index][2]
+    #createdAt = createdAt.astimezone('UTC')
+    utc_timestamp = datetime(attachments[index][2], tzinfo = pytz.utc)
+    central_timestamp = utc_timestamp.astimezone('US/Central')
+
+    await sendMessage(message, f'Courtesy of {author.mention}\n{attachment} at {central_timestamp}', triggeredCommand = trigger)
 
 #sends a random youtube video from chat
 async def randomVideo(message, trigger):
