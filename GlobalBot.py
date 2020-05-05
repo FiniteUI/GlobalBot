@@ -538,8 +538,9 @@ async def randomAttachment(message, trigger):
 
     #createdAt = attachments[index][2]
     #createdAt = createdAt.astimezone('UTC')
-    utc_timestamp = datetime(attachments[index][2], tzinfo = pytz.utc)
-    central_timestamp = utc_timestamp.astimezone('US/Central')
+    #utc_timestamp = datetime(attachments[index][2], tzinfo = pytz.utc)
+    #central_timestamp = utc_timestamp.astimezone('US/Central')
+    central_timestamp = attachments[index][2]
 
     await sendMessage(message, f'Courtesy of {author.mention}\n{attachment} at {central_timestamp}', triggeredCommand = trigger)
 
