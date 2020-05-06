@@ -546,11 +546,6 @@ async def randomAttachment(message, trigger):
     author = client.get_user(attachments[index][0])
 
     utc_timestamp = datetime.strptime(attachments[index][2], '%Y-%m-%d %H:%M:%S.%f')
-    #utc = pytz.timezone('UTC')
-    #central = pytz.timezone('US/Central')
-    #utc_timestamp = utc.localize(utc_timestamp)
-    #central_timestamp = utc_timestamp.astimezone(central)
-    #central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
     central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
     central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
@@ -558,12 +553,19 @@ async def randomAttachment(message, trigger):
 
 #sends a random youtube video from chat
 async def randomVideo(message, trigger):
-    videos = select(f"select distinct content from (select content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663')")
+    videos = select(f"select distinct author_id, created_at, content from (select content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663')")
     index = random.randrange(0, len(videos), 1)
-    video = videos[index][0]
+    video = videos[index][3]
     extractor = URLExtract()
     urls = extractor.find_urls(video)
-    await sendMessage(message, urls[0], triggeredCommand = trigger)
+
+    utc_timestamp = datetime.strptime(videos[index][2], '%Y-%m-%d %H:%M:%S.%f')
+    central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
+    central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+
+    author = client.get_user(videos[index][0])
+
+    await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{urls[0]}', triggeredCommand = trigger)
 
 #Moves a user into a specified voice channel
 async def move(message, trigger):
