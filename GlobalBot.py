@@ -553,7 +553,7 @@ async def randomAttachment(message, trigger):
 
 #sends a random youtube video from chat
 async def randomVideo(message, trigger):
-    videos = select(f"select distinct author_id, created_at, content from (select content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663')")
+    videos = select(f"select distinct author_id, created_at, content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663'")
     index = random.randrange(0, len(videos), 1)
     video = videos[index][3]
     extractor = URLExtract()
