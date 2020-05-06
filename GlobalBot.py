@@ -625,7 +625,8 @@ def callRefresh():
 
 async def uptime(message, trigger):
     uptime = datetime.now() - launchTime
-    await sendMessage(message, f'The current instance of the bot was launched at {launchTime} UTC. Current uptime is {uptime}.', triggeredCommand = trigger, codeBlock = True)
+    launchTimeTimeZone = convertUTCToTimezone(launchTime, 'US/Central')
+    await sendMessage(message, f'The current instance of the bot was launched at {launchTimeTimeZone} CST. Current uptime is {uptime}.', triggeredCommand = trigger, codeBlock = True)
 
 #load client
 load_dotenv('.env')
