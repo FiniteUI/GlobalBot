@@ -529,6 +529,15 @@ async def deleteLastBotMessage(message, trigger):
             return
     await sendMessage(message, 'No bot messages found in the last 100 messages',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
 
+#converts a UTC datetime into a specific timezone
+def convertUTCToTimezone(utc_timestamp, timezone):
+    #utc_timestamp = datetime.strptime(attachments[index][2], '%Y-%m-%d %H:%M:%S.%f')
+    utc = pytz.timezone('UTC')
+    newTimezone = pytz.timezone(timezone)
+    utc_timestamp = utc.localize(utc_timestamp)
+    newTimestamp = utc_timestamp.astimezone(newTimezone)
+    return newTimestamp
+
 #sends a random file attachment from chat
 async def randomAttachment(message, trigger):
     attachments = select(f"select author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif'")
@@ -537,10 +546,12 @@ async def randomAttachment(message, trigger):
     author = client.get_user(attachments[index][0])
 
     utc_timestamp = datetime.strptime(attachments[index][2], '%Y-%m-%d %H:%M:%S.%f')
-    utc = pytz.timezone('UTC')
-    central = pytz.timezone('US/Central')
-    utc_timestamp = utc.localize(utc_timestamp)
-    central_timestamp = utc_timestamp.astimezone(central)
+    #utc = pytz.timezone('UTC')
+    #central = pytz.timezone('US/Central')
+    #utc_timestamp = utc.localize(utc_timestamp)
+    #central_timestamp = utc_timestamp.astimezone(central)
+    #central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+    central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
     central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
     await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{attachment}', triggeredCommand = trigger)
