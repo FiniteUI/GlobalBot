@@ -527,11 +527,11 @@ async def deleteLastBotMessage(message, trigger):
             await sendMessage(message, 'Deleting last bot message...',  deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
             await i.delete()
             return
-    await sendMessage(message, 'No bot messages found in the last 100 message',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
+    await sendMessage(message, 'No bot messages found in the last 100 messages',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
 
 #sends a random file attachment from chat
 async def randomAttachment(message, trigger):
-    attachments = select(f'select author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id')
+    attachments = select(f"select author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif'")
     index = random.randrange(0, len(attachments), 1)
     attachment = attachments[index][1]
     author = client.get_user(attachments[index][0])
@@ -720,7 +720,7 @@ commands.append(command('help', 'Displays a list of available commands', 'help')
 commands.append(command('restart', 'Restarts the bot', 'restart', admin = True))
 commands.append(command('addusercommand', 'Adds a new simple message command. Format: !addusercommand command, message', 'addUserCommand'))
 commands.append(command('deleteusercommand', 'Deletes a user message command. Format: !deleteusercommand command', 'deleteUserCommand'))
-commands.append(command('pin', 'Sends a random pinned message', 'sendRandomPinnedMessage'))
+commands.append(command('randompin', 'Sends a random pinned message', 'sendRandomPinnedMessage'))
 commands.append(command('kick', 'Kicks a user from voice. Format: !kick @user', 'kickUser'))
 commands.append(command('usercommands', 'Displays a list of available user commands', 'listUserCommands'))
 commands.append(command('setstatus', 'Sets the status of the bot', 'setStatus'))
@@ -738,6 +738,7 @@ commands.append(command('clearbackup', 'Clears the backup of this server.', 'cle
 commands.append(command('update', 'Updates the source code from Github and restarts', 'update', admin = True))
 commands.append(command('uptime', 'Displays the launch time and uptime of the bot', 'uptime'))
 commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', 'refresh', admin = True))
+#commands.append(command('randommessage', 'Sends a random message from a '))
 loadUserCommands()
 
 #launch the refresh timer
