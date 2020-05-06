@@ -559,7 +559,7 @@ async def randomVideo(message, trigger):
     extractor = URLExtract()
     urls = extractor.find_urls(video)
 
-    utc_timestamp = datetime.strptime(videos[index][2], '%Y-%m-%d %H:%M:%S.%f')
+    utc_timestamp = datetime.strptime(videos[index][1], '%Y-%m-%d %H:%M:%S.%f')
     central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
     central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
