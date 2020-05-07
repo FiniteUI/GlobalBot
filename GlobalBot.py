@@ -27,15 +27,25 @@ class command:
     userCommand = False
     arguments = None
     admin = False
+    hidden = False
+    channel = -1
 
-    def __init__(self, trigger, description, function, userCommand = False, arguments = None, admin = False):
+    def __init__(self, trigger, description, function, userCommand = False, arguments = None, admin = False, hidden = False, channel = -1):
         self.trigger = trigger
         self.description = description
         self.function = function
         self.userCommand = userCommand
         self.arguments = arguments
         self.admin = admin
+        self.hidden = hidden
+        self.channel = channel
 
+    async def run(self, message):
+        if self.userCommand:
+            await globals()[self.function](message, *self.arguments, triggeredCommand = self.trigger)
+        else:
+            await globals()[self.function](message, trigger = self.trigger)
+            
 #returns and open connection to the database
 def openConnection():
     con = sqlite3.connect(database)
@@ -157,7 +167,6 @@ async def help(message, trigger):
     s = filter(filterStandardFunctions, commands)
     for i in s:
         x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.description}\n'''
-        #x = x + f'''!{i.trigger.ljust(20)} - \t{i.description}\n'''
     await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
 
 #lists available user commands
@@ -172,7 +181,6 @@ async def listUserCommands(message, trigger):
         for url in urls:
             description = description.replace(url, f'<{url}>')
         x = x + f'''**!{i.trigger.ljust(20)}** - \t{description}\n'''
-        #x = x + f'''!{i.trigger.ljust(20)} - \t{description}\n'''
     await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
 
 #restart the bot
@@ -188,11 +196,7 @@ async def restart(message = None, trigger = None, silent = False, fromMessage = 
     #wait for message cleanup
     await asyncio.sleep(30)
 
-    #os.execlp('python3', '-m', '/root/GlobalBot/GlobalBot.py')
     os.execlp('python', '-m', 'C:/GlobalBot/GlobalBot.py')
-
-    #subprocess.run("python3 -m GlobalBot.py")
-    #subprocess.run(['python3', '-m', '/root/GlobalBot/GlobalBot.py'], shell = True)
 
     await kill(message, trigger)
 
@@ -623,11 +627,14 @@ def callRefresh():
         timer = threading.Timer(refreshInterval, callRefresh)
         timer.start()
 
+#sends a message with the launch date and current uptime of the bot
 async def uptime(message, trigger):
     uptime = datetime.now() - launchTime
     launchTimeTimeZone = convertUTCToTimezone(launchTime, 'US/Central')
     launchTimeTimeZone = datetime.strftime(launchTimeTimeZone, '%B %d, %Y at %I:%M %p')
     await sendMessage(message, f'The current instance of the bot was launched on {launchTimeTimeZone} CST. Current uptime is {uptime}.', triggeredCommand = trigger, codeBlock = True)
+
+#sends a random message from the channel, optionally from a user
 
 #load client
 load_dotenv('.env')
@@ -663,16 +670,17 @@ async def on_message(message):
         command = message.content[1:len(message.content)].split(' ')[0].lower()
         for x in commands:
             if command == x.trigger.lower():
+                commandType = ''
                 if x.userCommand:
-                    addLog(f'{message.guild} user {message.author} triggered user command [{x.trigger}].', inspect.currentframe().f_code.co_name, command, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, arguments = str(x.arguments), invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-                    await globals()[x.function](message, x.arguments[0], x.arguments[1], triggeredCommand = x.trigger.lower())
+                    commandType = 'user '
                 else:
                     if x.admin:
+                        commandType = 'admin '
                         if int(message.author.id) != int(finiteui):
                             await sendMessage(message, 'This command is admin only.', deleteAfter = 20, triggeredCommand = x.trigger.lower())
                             return
-                    addLog(f'{message.guild} user {message.author} triggered command [{x.trigger}].', inspect.currentframe().f_code.co_name, command, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-                    await globals()[x.function](message, x.trigger.lower())
+                addLog(f'{message.guild} user {message.author} triggered {commandType}command [{x.trigger}].', inspect.currentframe().f_code.co_name, command, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, arguments = str(x.arguments), invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+                await x.run(message)
                 break
 
 @client.event
@@ -752,7 +760,7 @@ commands.append(command('clearbackup', 'Clears the backup of this server.', 'cle
 commands.append(command('update', 'Updates the source code from Github and restarts', 'update', admin = True))
 commands.append(command('uptime', 'Displays the launch time and uptime of the bot', 'uptime'))
 commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', 'refresh', admin = True))
-#commands.append(command('randommessage', 'Sends a random message from a '))
+commands.append(command('randommessage', 'Sends a random message from the channel. Optionally a user can be specified. Format: !randommessage @user', 'randomMessage', admin = True))
 loadUserCommands()
 
 #launch the refresh timer
