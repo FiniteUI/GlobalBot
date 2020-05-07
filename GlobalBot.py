@@ -634,6 +634,10 @@ async def uptime(message, trigger):
     launchTimeTimeZone = datetime.strftime(launchTimeTimeZone, '%B %d, %Y at %I:%M %p')
     await sendMessage(message, f'The current instance of the bot was launched on {launchTimeTimeZone} CST. Current uptime is {uptime}.', triggeredCommand = trigger, codeBlock = True)
 
+#sends the link to the bot source code
+async def source(message, trigger):
+    await sendMessage(message, 'https://github.com/FiniteUI/GlobalBot/blob/master/GlobalBot.py', triggeredCommand = trigger)
+    
 #sends a random message from the channel, optionally from a user
 
 #load client
@@ -761,6 +765,7 @@ commands.append(command('update', 'Updates the source code from Github and resta
 commands.append(command('uptime', 'Displays the launch time and uptime of the bot', 'uptime'))
 commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', 'refresh', admin = True))
 commands.append(command('randommessage', 'Sends a random message from the channel. Optionally a user can be specified. Format: !randommessage @user', 'randomMessage', admin = True))
+commands.append(command('source', 'Sends the link to the bot source code.', 'source'))
 loadUserCommands()
 
 #launch the refresh timer
