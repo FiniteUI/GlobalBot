@@ -206,20 +206,20 @@ async def restart(message = None, trigger = None, silent = False, fromMessage = 
     await kill(message, trigger)
 
 #add a new simple message command
-async def addUserCommand(message, commandTrigger):
-    x = removeCommand(message.content, f'!{commandTrigger}')
+async def addUserCommand(message, trigger):
+    x = removeCommand(message.content, f'!{trigger}')
     x = x.split(',')
     if len(x) >= 2:
-        trigger = x.pop(0).strip().lower()
-        spaceTest = trigger.split(' ')
+        newTrigger = x.pop(0).strip().lower()
+        spaceTest = newTrigger.split(' ')
         if len(spaceTest) > 1:
-            await sendMessage(message, 'Invalid command name. Command names cannot include spaces',  deleteAfter = 20, triggeredCommand = commandTrigger, codeBlock = True)
+            await sendMessage(message, 'Invalid command name. Command names cannot include spaces',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
         else:
             messageToSend = ','
             messageToSend = messageToSend.join(x).strip()
             for i in commands:
-                if trigger == i.trigger:
-                    await sendMessage(message, 'This command already exists.',  deleteAfter = 20, triggeredCommand = commandTrigger, codeBlock = True)
+                if newTrigger == i.newTrigger:
+                    await sendMessage(message, 'This command already exists.',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
                     return
             if messageToSend.startswith('/tts'):
                 messageToSend = messageToSend.replace('/tts', '')
@@ -228,12 +228,12 @@ async def addUserCommand(message, commandTrigger):
             else:
                 tts = False
                 z = ''
-            commands.append(command(trigger, f'''Sends the {z}message "{messageToSend}"''', 'sendMessage', True, [messageToSend, tts], server = message.guild.id))
-            await sendMessage(message, f'Adding user command [{trigger}]',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
-            saveUserCommand(message, trigger, messageToSend, tts)
-            addLog(f'Adding user command [{trigger}]', inspect.currentframe().f_code.co_name, commandTrigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+            commands.append(command(newTrigger, f'''Sends the {z}message "{messageToSend}"''', 'sendMessage', True, [messageToSend, tts], server = message.guild.id))
+            await sendMessage(message, f'Adding user command [{newTrigger}]',  deleteAfter = 20, triggeredCommand = newTrigger, codeBlock = True)
+            saveUserCommand(message, newTrigger, messageToSend, tts)
+            addLog(f'Adding user command [{newTrigger}]', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
     else:
-        await sendMessage(message, 'Invalid parameters. Format is !addmessagecommand command, message',  deleteAfter = 20, triggeredCommand = commandTrigger)
+        await sendMessage(message, 'Invalid parameters. Format is !addmessagecommand command, message',  deleteAfter = 20, triggeredCommand = trigger)
 
 #filters command list to only user functions
 def filterUserFunctions(command):
