@@ -218,7 +218,7 @@ async def addUserCommand(message, trigger):
             messageToSend = ','
             messageToSend = messageToSend.join(x).strip()
             for i in commands:
-                if newTrigger == i.newTrigger:
+                if newTrigger == i.trigger:
                     await sendMessage(message, 'This command already exists.',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
                     return
             if messageToSend.startswith('/tts'):
