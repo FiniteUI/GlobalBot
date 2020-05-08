@@ -667,8 +667,11 @@ async def randomMessage(message, trigger):
     central_timestamp = convertUTCToTimezone(randomMessage.created_at, 'US/Central')
     central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
-    text = f'On {central_timestamp}, {randomMessage.author.mention} said:\n>>> {randomMessage.content}'
+    #e = discord.Embed(title = "Go to this message", url = randomMessage.jump_url)
+
+    text = f'On {central_timestamp}, {randomMessage.author.mention} said:\nLink: {randomMessage.jump_url}\n>>> {randomMessage.content}'
     addLog(f'Sending random message', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+    #await sendMessage(message, text, triggeredCommand = trigger, embedItem = e)
     await sendMessage(message, text, triggeredCommand = trigger)
 
 #load client
