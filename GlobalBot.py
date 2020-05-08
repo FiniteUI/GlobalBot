@@ -28,17 +28,22 @@ class command:
     arguments = None
     admin = False
     hidden = False
-    channel = -1
+    server = -1
 
-    def __init__(self, trigger, description, function, userCommand = False, arguments = None, admin = False, hidden = False, channel = -1):
+    def __init__(self, trigger , description, function = '', userCommand = False, arguments = None, admin = False, hidden = False, server = -1):
         self.trigger = trigger
         self.description = description
-        self.function = function
+        
+        if function == '':
+            self.function = trigger
+        else:
+            self.function = function
+
         self.userCommand = userCommand
         self.arguments = arguments
         self.admin = admin
         self.hidden = hidden
-        self.channel = channel
+        self.server = server
 
     async def run(self, message):
         if self.userCommand:
@@ -90,9 +95,9 @@ def loadUserCommands():
     userMessages = select('select * from USER_COMMANDS')
     for x in userMessages:
         if x[3]:
-            commands.append(command(x[1], f'Sends the text to speech message "{x[2]}"', 'sendMessage', True, [x[2], x[3]]))
+            commands.append(command(x[1], f'Sends the text to speech message "{x[2]}"', 'sendMessage', True, [x[2], x[3]], server = x[5]))
         else:
-            commands.append(command(x[1], f'Sends the message "{x[2]}"', 'sendMessage', True, [x[2], x[3]]))
+            commands.append(command(x[1], f'Sends the message "{x[2]}"', 'sendMessage', True, [x[2], x[3]], server = x[5]))
 
 #saves a message to MESSAGES
 def saveMessage(message):
@@ -223,7 +228,7 @@ async def addUserCommand(message, commandTrigger):
             else:
                 tts = False
                 z = ''
-            commands.append(command(trigger, f'''Sends the {z}message "{messageToSend}"''', 'sendMessage', True, [messageToSend, tts]))
+            commands.append(command(trigger, f'''Sends the {z}message "{messageToSend}"''', 'sendMessage', True, [messageToSend, tts], server = message.guild.id))
             await sendMessage(message, f'Adding user command [{trigger}]',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
             saveUserCommand(message, trigger, messageToSend, tts)
             addLog(f'Adding user command [{trigger}]', inspect.currentframe().f_code.co_name, commandTrigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
@@ -232,15 +237,15 @@ async def addUserCommand(message, commandTrigger):
 
 #filters command list to only user functions
 def filterUserFunctions(command):
-    return command.userCommand
+    return (command.userCommand and not command.hidden)
 
 #filters command list to only admin functions
 def filterAdminFunctions(command):
-    return command.admin
+    return (command.admin and not command.hidden)
 
 #filters command list to only admin functions
 def filterStandardFunctions(command):
-    return (not command.userCommand and not command.admin)
+    return (not command.userCommand and not command.admin and not command.hidden)
 
 #deletes a user command from the database
 def deleteUserCommandFromDatabase(serverID, command):
@@ -272,7 +277,16 @@ async def sendRandomPinnedMessage(message, trigger):
         await sendMessage(message, 'This server has no pinned messages.', deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
     else:
         x = random.randrange(0, len(pin), 1)
+        
+        #e = discord.Embed(url = pin[x].jump_url, title = pin[x].content)
+        #e = e.set_author(name = pin[x].author.name, icon_url = pin[x].author.avatar_url)
+
+        #central_timestamp = convertUTCToTimezone(pin[x].created_at, 'US/Central')
+        #central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+        #messageText = f'From {pin[x].author.mention} on {central_timestamp}'
+
         addLog(f'Sending random pinned message {pin[x]}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+        #await sendMessage(message, messageText, triggeredCommand = trigger, embedItem = e)
         await sendMessage(message, pin[x].jump_url, triggeredCommand = trigger)
 
 #kicks a user out of voice chat
@@ -637,8 +651,25 @@ async def uptime(message, trigger):
 #sends the link to the bot source code
 async def source(message, trigger):
     await sendMessage(message, 'https://github.com/FiniteUI/GlobalBot/blob/master/GlobalBot.py', triggeredCommand = trigger)
-    
+
 #sends a random message from the channel, optionally from a user
+async def randomMessage(message, trigger):
+    #grab a random message
+    user = message.mentions
+    filter = ''
+    if user != []:
+        filter = f' and author_id = {user[0].id}'
+    messages = select(f"select distinct id from MESSAGE_HISTORY where content <> '' and guild_id = {message.guild.id} and channel_id = {message.channel.id}{filter}")
+    x = random.randrange(0, len(messages), 1)
+    randomMessage = messages[x][0]
+    randomMessage = await message.channel.fetch_message(randomMessage)
+
+    central_timestamp = convertUTCToTimezone(randomMessage.created_at, 'US/Central')
+    central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+
+    text = f'On {central_timestamp}, {randomMessage.author.mention} said:\n>>> {randomMessage.content}'
+    addLog(f'Sending random message', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+    await sendMessage(message, text, triggeredCommand = trigger)
 
 #load client
 load_dotenv('.env')
@@ -742,7 +773,7 @@ async def on_voice_state_update(member, voiceStateBefore, voiceStateAfter):
     
 #load commands
 commands = []
-commands.append(command('help', 'Displays a list of available commands', 'help'))
+commands.append(command('help', 'Displays a list of available commands'))
 commands.append(command('restart', 'Restarts the bot', 'restart', admin = True))
 commands.append(command('addusercommand', 'Adds a new simple message command. Format: !addusercommand command, message', 'addUserCommand'))
 commands.append(command('deleteusercommand', 'Deletes a user message command. Format: !deleteusercommand command', 'deleteUserCommand'))
@@ -751,21 +782,21 @@ commands.append(command('kick', 'Kicks a user from voice. Format: !kick @user', 
 commands.append(command('usercommands', 'Displays a list of available user commands', 'listUserCommands'))
 commands.append(command('setstatus', 'Sets the status of the bot', 'setStatus'))
 commands.append(command('setname', 'Sets the display name of the bot', 'setName'))
-commands.append(command('demote', 'Moves a user to the Tier 1 voice chat. Format: !demote @user', 'demote'))
-commands.append(command('backup', 'Starts a server backup.', 'backup', admin = True))
+commands.append(command('demote', 'Moves a user to the Tier 1 voice chat. Format: !demote @user'))
+commands.append(command('backup', 'Starts a server backup.', admin = True))
 commands.append(command('admincommands', 'Displays a list of available admin commands', 'listAdminCommands', admin = True))
 commands.append(command('kill', 'Ends the bot program', 'kill', admin = True))
 commands.append(command('deletelastbotmessage', 'Deletes the last message sent by the bot', 'deleteLastBotMessage', admin = True))
-commands.append(command('roulette', 'Kicks a random user from voice chat', 'roulette'))
+commands.append(command('roulette', 'Kicks a random user from voice chat'))
 commands.append(command('ra', 'Sends a random attachment from the channel history', 'randomAttachment'))
 commands.append(command('randomvideo', 'Sends a random youtube video from the channel history', 'randomVideo'))
-commands.append(command('move', 'Moves a user into a specified voice channel. Format: !move channel @user', 'move', admin = True))
+commands.append(command('move', 'Moves a user into a specified voice channel. Format: !move channel @user', admin = True))
 commands.append(command('clearbackup', 'Clears the backup of this server.', 'clearBackup', admin = True))
-commands.append(command('update', 'Updates the source code from Github and restarts', 'update', admin = True))
-commands.append(command('uptime', 'Displays the launch time and uptime of the bot', 'uptime'))
-commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', 'refresh', admin = True))
-commands.append(command('randommessage', 'Sends a random message from the channel. Optionally a user can be specified. Format: !randommessage @user', 'randomMessage', admin = True))
-commands.append(command('source', 'Sends the link to the bot source code.', 'source'))
+commands.append(command('update', 'Updates the source code from Github and restarts', admin = True))
+commands.append(command('uptime', 'Displays the launch time and uptime of the bot'))
+commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', admin = True))
+commands.append(command('randommessage', 'Sends a random message from the channel. Optionally a user can be specified. Format: !randommessage @user', 'randomMessage'))
+commands.append(command('source', 'Sends the link to the bot source code.'))
 loadUserCommands()
 
 #launch the refresh timer
