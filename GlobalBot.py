@@ -46,7 +46,7 @@ class command:
         self.arguments = arguments
         self.admin = admin
         self.hidden = hidden
-        self.server = server
+        self.server = int(server)
 
     async def run(self, message):
         if self.userCommand:
@@ -184,11 +184,12 @@ async def listUserCommands(message, trigger):
     s = filter(filterUserFunctions, commands)
     extractor = URLExtract()
     for i in s:
-        description = i.description
-        urls = extractor.find_urls(i.description)
-        for url in urls:
-            description = description.replace(url, f'<{url}>')
-        x = x + f'''**!{i.trigger.ljust(20)}** - \t{description}\n'''
+        if i.server == message.guild.id:
+            description = i.description
+            urls = extractor.find_urls(i.description)
+            for url in urls:
+                description = description.replace(url, f'<{url}>')
+            x = x + f'''**!{i.trigger.ljust(20)}** - \t{description}\n'''
     await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
 
 #restart the bot
