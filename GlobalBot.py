@@ -140,6 +140,9 @@ def chunkStringNewLine(string, length):
 
 #sends a message to the channel
 async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None, triggeredCommand = None, codeBlock = False, attachment = None):
+    if sendMessage.trim() == '':
+        return
+
     addLog(f'''Sending message "{sendMessage}" to channel {triggerMessage.channel} in server {triggerMessage.guild}, {triggerMessage.guild.id}.''', inspect.currentframe().f_code.co_name, server = triggerMessage.guild.name, serverID = triggerMessage.guild.id, channel = triggerMessage.channel.name, channelID = triggerMessage.channel.id, invokedUser = triggerMessage.author.name, invokedUserID = triggerMessage.author.id, invokedUserDiscriminator = triggerMessage.author.discriminator, invokedUserDisplayName = triggerMessage.author.nick, command = triggeredCommand)
 
     #message limit is 2000 characters, we may add 2 if codeBlock, so our limit is 1998
@@ -270,8 +273,8 @@ def deleteUserCommandFromDatabase(serverID, command):
     closeConnection(con)
 
 #delete an existing user command
-async def deleteUserCommand(message, commandTrigger):
-    x = removeCommand(message.content, f'!{commandTrigger}')
+async def deleteUserCommand(message, trigger):
+    x = removeCommand(message.content, f'!{trigger}')
 
     s = filterCommands(commands, message.guild.id)
     s = filter(filterUserFunctions, s)
@@ -280,10 +283,10 @@ async def deleteUserCommand(message, commandTrigger):
             commands.remove(y)
             del y
             deleteUserCommandFromDatabase(message.guild.id, x.lower())
-            addLog(f'Deleting user command [{x}] from server {message.guild.name}', inspect.currentframe().f_code.co_name, commandTrigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-            await sendMessage(message, f'Deleting user command [{x}]',  deleteAfter = 20, triggeredCommand = commandTrigger, codeBlock = True)
+            addLog(f'Deleting user command [{x}] from server {message.guild.name}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+            await sendMessage(message, f'Deleting user command [{x}]',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
             return
-    await sendMessage(message, f'Command [{x}] not found',  deleteAfter = 20, triggeredCommand = commandTrigger, codeBlock = True)
+    await sendMessage(message, f'Command [{x}] not found',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
 
 #send a random pinned message
 async def sendRandomPinnedMessage(message, trigger):
