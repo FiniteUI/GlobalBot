@@ -786,6 +786,8 @@ async def on_message(message):
                 commandType = ''
                 if x.userCommand:
                     commandType = 'user '
+                    if x.server != message.guild.id:
+                        return
                 else:
                     if x.admin:
                         commandType = 'admin '
