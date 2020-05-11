@@ -716,7 +716,7 @@ async def getBackup(message, trigger):
 
         with open(fullPath, 'wt+', encoding = 'utf-16', newline = '') as tempFile:
             writer = csv.writer(tempFile, quoting = csv.QUOTE_ALL)
-            writer.writerow(['message_timestamp', 'channel_id', 'channel_name', 'author', 'author_discriminator', 'content', 'jump_url', 'text_to_speech', 'pinned', 'attachment'])
+            writer.writerow(['message_timestamp', 'channel_id', 'channel_name', 'author', 'author_discriminator', 'author_display_name', 'content', 'jump_url', 'text_to_speech', 'pinned', 'attachment'])
             writer.writerows(channelMessages)
 
     #now zip them up
