@@ -181,7 +181,8 @@ async def help(message, trigger):
 async def listUserCommands(message, trigger):
     addLog(f'Listing user commands', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
     x = ''
-    s = filter(filterUserFunctions, commands)
+    s = filterCommands(commands, message.guild.id)
+    s = filter(filterUserFunctions, s)
     extractor = URLExtract()
     for i in s:
         if i.server == message.guild.id:
@@ -221,7 +222,8 @@ async def addUserCommand(message, trigger):
         else:
             messageToSend = ','
             messageToSend = messageToSend.join(x).strip()
-            for i in commands:
+            tempCommandList = filterCommands(commands, message.guild.id)
+            for i in tempCommandList:
                 if newTrigger == i.trigger:
                     await sendMessage(message, 'This command already exists.',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
                     return
@@ -251,6 +253,14 @@ def filterAdminFunctions(command):
 def filterStandardFunctions(command):
     return (not command.userCommand and not command.admin and not command.hidden)
 
+#returns a list of commands usable to this server
+def filterCommands(commandList, serverID):
+    x = []
+    for i in commandList:
+        if i.server == serverID or i.server == -1:
+            x.append(i)
+    return x
+
 #deletes a user command from the database
 def deleteUserCommandFromDatabase(serverID, command):
     con = openConnection()
@@ -263,7 +273,8 @@ def deleteUserCommandFromDatabase(serverID, command):
 async def deleteUserCommand(message, commandTrigger):
     x = removeCommand(message.content, f'!{commandTrigger}')
 
-    s = filter(filterUserFunctions, commands)
+    s = filterCommands(commands, message.guild.id)
+    s = filter(filterUserFunctions, s)
     for y in s:
         if y.trigger.lower() == x.lower():
             commands.remove(y)
@@ -629,10 +640,7 @@ async def update(message, trigger):
 async def refresh(message = None, trigger = None):
     if len(client.guilds) > 0:
         for guild in client.guilds:
-            #await sendChannelMessage('Starting bot refresh...', guild.text_channels[0].id, deleteAfter = 10)
-            #lastMessage = await guild.text_channels[0].fetch_message(guild.text_channels[0].last_message_id)
             await backup(trigger = 'refresh', silent = True, fromMessage = False, overrideGuild = guild)
-        #await restart(lastMessage, 'refresh', silent = True)
         await restart(trigger = 'refresh', silent = True, fromMessage = False)
 
 #add the regresh into the main event loop
@@ -671,11 +679,8 @@ async def randomMessage(message, trigger):
     central_timestamp = convertUTCToTimezone(randomMessage.created_at, 'US/Central')
     central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
-    #e = discord.Embed(title = "Go to this message", url = randomMessage.jump_url)
-
     text = f'On {central_timestamp}, {randomMessage.author.mention} said:\nLink: {randomMessage.jump_url}\n>>> {randomMessage.content}'
     addLog(f'Sending random message', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-    #await sendMessage(message, text, triggeredCommand = trigger, embedItem = e)
     await sendMessage(message, text, triggeredCommand = trigger)
 
 #check if the test.txt file exists
@@ -764,13 +769,8 @@ async def on_ready():
 
     addLog(f'{client.user} has connected to Discord!', inspect.currentframe().f_code.co_name)
 
-    #for x in client.guilds:
-       #addLog(f'Connected to server: {x}, {x.id}', inspect.currentframe().f_code.co_name, server = x.name, serverID = x.id)
-
 @client.event
 async def on_message(message):
-    #saveMessage(message)
-
     #check if running in test mode
     if testMode:
         if message.guild.id != testServer:
