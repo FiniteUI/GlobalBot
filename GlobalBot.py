@@ -18,6 +18,9 @@ import asyncio
 import threading
 import subprocess
 import pytz
+import csv
+import zipfile
+import zlib
 
 #command class
 class command:
@@ -136,7 +139,7 @@ def chunkStringNewLine(string, length):
     return returnStrings
 
 #sends a message to the channel
-async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None, triggeredCommand = None, codeBlock = False):
+async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None, triggeredCommand = None, codeBlock = False, attachment = None):
     addLog(f'''Sending message "{sendMessage}" to channel {triggerMessage.channel} in server {triggerMessage.guild}, {triggerMessage.guild.id}.''', inspect.currentframe().f_code.co_name, server = triggerMessage.guild.name, serverID = triggerMessage.guild.id, channel = triggerMessage.channel.name, channelID = triggerMessage.channel.id, invokedUser = triggerMessage.author.name, invokedUserID = triggerMessage.author.id, invokedUserDiscriminator = triggerMessage.author.discriminator, invokedUserDisplayName = triggerMessage.author.nick, command = triggeredCommand)
 
     #message limit is 2000 characters, we may add 2 if codeBlock, so our limit is 1998
@@ -144,14 +147,14 @@ async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteA
         x = chunkStringNewLine(sendMessage, 1998)
         for i in x:
             if codeBlock:
-                await triggerMessage.channel.send(f'`{i}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
+                await triggerMessage.channel.send(f'`{i}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
             else:
-                await triggerMessage.channel.send(i, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
+                await triggerMessage.channel.send(i, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
     else:
         if codeBlock:
-            await triggerMessage.channel.send(f'`{sendMessage}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
+            await triggerMessage.channel.send(f'`{sendMessage}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
         else:
-            await triggerMessage.channel.send(sendMessage, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
+            await triggerMessage.channel.send(sendMessage, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
 
 #sends a message to the channel
 async def sendChannelMessage(message, channelID, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None):
@@ -674,17 +677,75 @@ async def randomMessage(message, trigger):
     #await sendMessage(message, text, triggeredCommand = trigger, embedItem = e)
     await sendMessage(message, text, triggeredCommand = trigger)
 
+#check if the test.txt file exists
+def checkTestMode():
+    directory = os.getcwd()
+    directory = os.path.join(directory, 'test.txt')
+    if (os.path.isfile(directory)):
+        return True
+    else:
+        return False
+
+#creates a backup file of the server and sends it
+async def getBackup(message, trigger):
+    addLog(f'Generating backup archive', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+    
+    #first run the backup to get any new messages
+    await backup(trigger = trigger, silent = True, fromMessage = False, overrideGuild = message.guild)
+
+    #now create the directory backup
+    directory = os.getcwd()
+    directory = os.path.join(directory, 'User Requested Backups', str(message.guild.id))
+
+    print(directory)
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
+    
+    #now grab the data
+    channels = select(f'select distinct channel_id from message_history where guild_id = {message.guild.id}')
+    messages = select(f'select created_at, channel_id, channel, author_name, author_discriminator, author_display_name, clean_content, jump_url, tts, pinned, url from message_history left join message_attachment_history on message_history.id = message_attachment_history.message_id where message_history.guild_id = {message.guild.id} order by channel_id, created_at')
+
+    #now create the files
+    files = []
+    for channel in channels:
+        channelMessages = [x for x in messages if x[1] == channel[0]]
+        timeStamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
+        fileName = f'{message.author.id}-{channel[0]}-{timeStamp}.csv'
+        fullPath = os.path.join(directory, fileName)
+        files.append([fileName, fullPath])
+
+        with open(fullPath, 'wt+', encoding = 'utf-16', newline = '') as tempFile:
+            writer = csv.writer(tempFile, quoting = csv.QUOTE_ALL)
+            writer.writerow(['message_timestamp', 'channel_id', 'channel_name', 'author', 'author_discriminator', 'content', 'jump_url', 'text_to_speech', 'pinned', 'attachment'])
+            writer.writerows(channelMessages)
+
+    #now zip them up
+    timeStamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
+    zipName = f'{message.author.id}-{message.guild.id}-{timeStamp}.zip'
+    zipName = os.path.join(directory, zipName)
+    with zipfile.ZipFile(zipName, mode = 'w') as tempZip:
+        for file in files:
+            tempZip.write(file[1], arcname = file[0], compress_type = zipfile.ZIP_DEFLATED)
+            os.remove(file[1])
+    
+    #now send it
+    backupAttachment = discord.File(zipName)
+    await sendMessage(message, f'Here is your server backup {message.author.mention}', attachment = backupAttachment, triggeredCommand = trigger)
+    os.remove(zipName)
+
+
 #load client
 load_dotenv('.env')
 token = os.getenv('DISCORD_TOKEN')
 database = os.getenv('GLOBALBOT_DATABASE')
 finiteui = os.getenv('DISCORD_ID')
 githubToken = os.getenv('GITHUB_TOKEN')
-testServer = os.getenv('DISCORD_TEST_SERVER_ID')
+testServer = int(os.getenv('DISCORD_TEST_SERVER_ID'))
 loop = ''
 launchDate = date.today()
 refreshInterval = 300
 launchTime = datetime.now()
+testMode = checkTestMode()
 
 client = discord.Client()
 
@@ -702,6 +763,13 @@ async def on_ready():
 @client.event
 async def on_message(message):
     #saveMessage(message)
+
+    #check if running in test mode
+    if testMode:
+        if message.guild.id != testServer:
+            return
+
+    #check command
     if message.author.bot:
         return
     elif message.content.startswith('!'):
@@ -800,6 +868,7 @@ commands.append(command('uptime', 'Displays the launch time and uptime of the bo
 commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', admin = True))
 commands.append(command('randommessage', 'Sends a random message from the channel. Optionally a user can be specified. Format: !randommessage @user', 'randomMessage'))
 commands.append(command('source', 'Sends the link to the bot source code.'))
+commands.append(command('getbackup', 'Creates and sends a backup of the server.', 'getBackup'))
 loadUserCommands()
 
 #launch the refresh timer
