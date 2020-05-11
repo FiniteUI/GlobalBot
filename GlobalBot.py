@@ -757,8 +757,8 @@ async def on_ready():
 
     addLog(f'{client.user} has connected to Discord!', inspect.currentframe().f_code.co_name)
 
-    for x in client.guilds:
-       addLog(f'Connected to server: {x}, {x.id}', inspect.currentframe().f_code.co_name, server = x.name, serverID = x.id)
+    #for x in client.guilds:
+       #addLog(f'Connected to server: {x}, {x.id}', inspect.currentframe().f_code.co_name, server = x.name, serverID = x.id)
 
 @client.event
 async def on_message(message):
@@ -868,7 +868,7 @@ commands.append(command('uptime', 'Displays the launch time and uptime of the bo
 commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', admin = True))
 commands.append(command('randommessage', 'Sends a random message from the channel. Optionally a user can be specified. Format: !randommessage @user', 'randomMessage'))
 commands.append(command('source', 'Sends the link to the bot source code.'))
-commands.append(command('getbackup', 'Creates and sends a backup of the server.', 'getBackup'))
+commands.append(command('getbackup', 'Creates and sends a backup of the server', 'getBackup'))
 loadUserCommands()
 
 #launch the refresh timer
