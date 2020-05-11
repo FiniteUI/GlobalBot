@@ -698,7 +698,6 @@ async def getBackup(message, trigger):
     directory = os.getcwd()
     directory = os.path.join(directory, 'User Requested Backups', str(message.guild.id))
 
-    print(directory)
     if not os.path.isdir(directory):
         os.makedirs(directory)
     
@@ -793,7 +792,8 @@ async def on_message(message):
                             await sendMessage(message, 'This command is admin only.', deleteAfter = 20, triggeredCommand = x.trigger.lower())
                             return
                 addLog(f'{message.guild} user {message.author} triggered {commandType}command [{x.trigger}].', inspect.currentframe().f_code.co_name, command, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, arguments = str(x.arguments), invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-                await x.run(message)
+                async with message.channel.typing():
+                    await x.run(message)
                 break
 
 @client.event
