@@ -682,6 +682,7 @@ def checkTestMode():
     directory = os.getcwd()
     directory = os.path.join(directory, 'test.txt')
     if (os.path.isfile(directory)):
+        print('The Bot is launching in TEST MODE...')
         return True
     else:
         return False
@@ -733,6 +734,12 @@ async def getBackup(message, trigger):
     await sendMessage(message, f'Here is your server backup {message.author.mention}', attachment = backupAttachment, triggeredCommand = trigger)
     os.remove(zipName)
 
+#lists the guilds the bot is connected to
+async def guilds(message, trigger):
+    text = 'GlobalBot is connected to the following guilds:\n'
+    for x in client.guilds:
+        text = f'{text}{x.id}, {x.name}\n'
+    await sendMessage(message, text, triggeredCommand = trigger, codeBlock = True)
 
 #load client
 load_dotenv('.env')
@@ -869,6 +876,7 @@ commands.append(command('refresh', 'Runs a backup of every guild the bot is in, 
 commands.append(command('randommessage', 'Sends a random message from the channel. Optionally a user can be specified. Format: !randommessage @user', 'randomMessage'))
 commands.append(command('source', 'Sends the link to the bot source code.'))
 commands.append(command('getbackup', 'Creates and sends a backup of the server', 'getBackup'))
+commands.append(command('guilds', 'Displays a list of guilds the bot is connected to', admin = True))
 loadUserCommands()
 
 #launch the refresh timer
