@@ -784,13 +784,12 @@ async def on_message(message):
         return
     elif message.content.startswith('!'):
         command = message.content[1:len(message.content)].split(' ')[0].lower()
-        for x in commands:
+        commandList = filterCommands(commands, message.guild.id)
+        for x in commandList:
             if command == x.trigger.lower():
                 commandType = ''
                 if x.userCommand:
                     commandType = 'user '
-                    if x.server != message.guild.id:
-                        return
                 else:
                     if x.admin:
                         commandType = 'admin '
