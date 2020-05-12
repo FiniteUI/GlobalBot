@@ -57,6 +57,7 @@ class command:
 #returns and open connection to the database
 def openConnection():
     con = sqlite3.connect(database)
+    con.row_factory = sqlite3.Row
     return con
 
 #closes the given database connection
@@ -749,6 +750,94 @@ async def guilds(message, trigger):
         text = f'{text}{x.id}, {x.name}\n'
     await sendMessage(message, text, triggeredCommand = trigger, codeBlock = True)
 
+#displays voice stats for the specified user
+async def voiceStats(message, trigger):
+    user = message.mentions
+    if len(user) != 1:
+        await sendMessage(message, 'Invalid format. Correct format is !voicestats @user.', deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
+    else:
+        user = user[0]
+        chatTime = None
+        streamTime = None
+        mutedTime = None
+        deafenedTime = None
+        videoTime = None
+        #channels = []
+        lastJoin = None
+        lastDeafen = None
+        lastMute = None
+        lastVideo = None
+        lastStream = None
+        voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {message.guild.id} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
+        #voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {613938772270383124} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
+        #names = voiceLogs.keys()
+        for i in voiceLogs:
+            #print(i[31])
+            #print(i['EVENT'])
+            if i['EVENT'] == 'JOIN_VOICE':
+                lastJoin = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+
+            elif i['EVENT'] == 'DEAFEN':
+                lastDeafen = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+
+            elif i['EVENT'] == 'MUTE':
+                lastMute = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+
+            elif i['EVENT'] == 'VIDEO_START':
+                lastVideo = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+
+            elif i['EVENT'] == 'STREAM_START':
+                lastStream = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+
+            elif i['EVENT'] == 'LEAVE_VOICE':
+                if lastJoin != None:
+                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                    if chatTime != None:
+                        chatTime = chatTime + (end - lastJoin)
+                    else:
+                        chatTime = (end - lastJoin)
+                    lastJoin = None
+
+            elif i['EVENT'] == 'UNDEAFEN':
+                if lastDeafen != None:
+                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                    if deafenedTime != None:
+                        deafenedTime = deafenedTime + (end - lastDeafen)
+                    else:
+                        deafenedTime = (end - lastDeafen)
+                    lastDeafen = None
+
+            elif i['EVENT'] == 'UNMUTE':
+                if lastMute != None:
+                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                    if mutedTime != None:
+                        mutedTime = mutedTime + (end - lastMute)
+                    else:
+                        mutedTime = (end - lastMute)
+                    lastMute = None
+
+            elif i['EVENT'] == 'VIDEO_END':
+                if lastVideo != None:
+                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                    if videoTime != None:
+                        videoTime = videoTime + (end - lastVideo)
+                    else:
+                        videoTime = (end - lastVideo)
+                    lastVideo = None
+
+            elif i['EVENT'] == 'STREAM_END':
+                if lastStream != None:
+                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                    if streamTime != None:
+                        streamTime = videoTime + (end - lastStream)
+                    else:
+                        streamTime = (end - lastStream)
+                    lastStream = None
+            #elif i['EVENT'] == 'JOIN_VOICE':
+        
+        activity = f'Since {client.user.mention} started recording voice activity on 2020-04-28 01:08:16.990281 UTC, {user.mention} has spent:\n{chatTime} in voice chat\n{mutedTime} muted\n{deafenedTime} deafeaned\n{streamTime} streaming\nand {videoTime} video chatting.\nWow!'
+        await sendMessage(message, activity, deleteAfter = 20, triggeredCommand = trigger)
+
 #load client
 load_dotenv('.env')
 token = os.getenv('DISCORD_TOKEN')
@@ -879,9 +968,10 @@ commands.append(command('update', 'Updates the source code from Github and resta
 commands.append(command('uptime', 'Displays the launch time and uptime of the bot'))
 commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', admin = True))
 commands.append(command('randommessage', 'Sends a random message from the channel. Optionally a user can be specified. Format: !randommessage @user', 'randomMessage'))
-commands.append(command('source', 'Sends the link to the bot source code.'))
+commands.append(command('source', 'Sends the link to the bot source code'))
 commands.append(command('getbackup', 'Creates and sends a backup of the server', 'getBackup'))
 commands.append(command('guilds', 'Displays a list of guilds the bot is connected to', admin = True))
+commands.append(command('voicestats', 'Displays voice stats for the specified user. Format: !voicestats @user', 'voiceStats'))
 loadUserCommands()
 
 #launch the refresh timer
