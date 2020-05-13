@@ -930,7 +930,7 @@ async def voiceStats(message, trigger):
 #formats a timedelta object into a string with days, hours, minutes, seconds
 def formatTimeDelta(duration):
     if duration == None:
-        return '0 seconds'
+        return '0 s'
 
     days, remainder = divmod(duration.total_seconds(), 86400)
     hours, remainder = divmod(remainder, 3600)
