@@ -836,7 +836,7 @@ async def voiceStats(message, trigger):
             #elif i['EVENT'] == 'JOIN_VOICE':
         
         activity = f'Since {client.user.mention} started recording voice activity on 2020-04-28 01:08:16.990281 UTC, {user.mention} has spent:\n{chatTime} in voice chat\n{mutedTime} muted\n{deafenedTime} deafeaned\n{streamTime} streaming\nand {videoTime} video chatting.\nWow!'
-        await sendMessage(message, activity, deleteAfter = 20, triggeredCommand = trigger)
+        await sendMessage(message, activity, triggeredCommand = trigger)
 
 #load client
 load_dotenv('.env')
