@@ -878,7 +878,7 @@ async def voiceStats(message, trigger):
         deafenedTime = formatTimeDelta(deafenedTime)
         streamTime = formatTimeDelta(streamTime)
         videoTime = formatTimeDelta(videoTime)
-        activity = f'Since {client.user.mention} started recording voice activity on {start} CST, {user.mention} has spent:\n{chatTime} in voice chat\n{mutedTime} muted\n{deafenedTime} deafeaned\n{streamTime} streaming\nand {videoTime} video chatting.\nWow!'
+        activity = f'Since {client.user.mention} started recording voice activity on {start} CST, {user.mention} has spent:\n{chatTime} in voice chat\n{mutedTime} muted\n{deafenedTime} deafeaned\n{streamTime} streaming\nand {videoTime} video chatting'
         await sendMessage(message, activity, triggeredCommand = trigger)
 
 #formats a timedelta object into a string with days, hours, minutes, seconds
