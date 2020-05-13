@@ -943,13 +943,13 @@ def formatTimeDelta(duration):
 
     formattedDuration = ''
     if days != 0:
-        formattedDuration = f'{days} days, {hours} hours, {minutes} minutes, and {seconds} seconds'
+        formattedDuration = f'{days} d, {hours} h, {minutes} m, {seconds} s'
     elif hours != 0:
-        formattedDuration = f'{hours} hours, {minutes} minutes, and {seconds} seconds'
+        formattedDuration = f'{hours} h, {minutes} m, {seconds} s'
     elif minutes != 0:
-        formattedDuration = f'{minutes} minutes, and {seconds} seconds'
+        formattedDuration = f'{minutes} m, and {seconds} s'
     else:
-        formattedDuration = f'{seconds} seconds'
+        formattedDuration = f'{seconds} s'
 
     return formattedDuration
 
