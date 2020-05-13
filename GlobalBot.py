@@ -21,6 +21,7 @@ import pytz
 import csv
 import zipfile
 import zlib
+import matplotlib
 
 #command class
 class command:
@@ -296,16 +297,8 @@ async def sendRandomPinnedMessage(message, trigger):
         await sendMessage(message, 'This server has no pinned messages.', deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
     else:
         x = random.randrange(0, len(pin), 1)
-        
-        #e = discord.Embed(url = pin[x].jump_url, title = pin[x].content)
-        #e = e.set_author(name = pin[x].author.name, icon_url = pin[x].author.avatar_url)
-
-        #central_timestamp = convertUTCToTimezone(pin[x].created_at, 'US/Central')
-        #central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
-        #messageText = f'From {pin[x].author.mention} on {central_timestamp}'
 
         addLog(f'Sending random pinned message {pin[x]}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-        #await sendMessage(message, messageText, triggeredCommand = trigger, embedItem = e)
         await sendMessage(message, pin[x].jump_url, triggeredCommand = trigger)
 
 #kicks a user out of voice chat
@@ -447,26 +440,39 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
                     if r.custom_emoji:
                         name = r.emoji.name
                         id = r.emoji.id
-                        require_colons = r.emoji.require_colons
                         animated = r.emoji.animated
-                        managed = r.emoji.managed
-                        guild_id = r.emoji.guild_id
-                        available = r.emoji.available
-                        if r.emoji.user != None:
-                            user_name = r.emoji.user.name
-                            user_id =  r.emoji.user.id
-                            user_discriminator = r.emoji.user.discriminator
-                            user_display_name = r.emoji.user.display_name
-                        else:
+                        url = r.emoji.url
+                        unicode = None
+                        if type(r.emoji) == discord.PartialEmoji:
+                            require_colons = None
+                            managed = None
+                            guild_id = None
+                            available = None
                             user_name = None
                             user_id =  None
                             user_discriminator = None
                             user_display_name = None
-                        created_at = r.emoji.created_at
-                        url = r.emoji.url
-                        roles = r.emoji.roles
-                        is_usable = r.emoji.is_usable()
-                        unicode = None
+                            created_at = None
+                            roles = None
+                            is_usable = None
+                        else:
+                            require_colons = r.emoji.require_colons
+                            managed = r.emoji.managed
+                            guild_id = r.emoji.guild_id
+                            available = r.emoji.available
+                            created_at = r.emoji.created_at
+                            roles = r.emoji.roles
+                            is_usable = r.emoji.is_usable()
+                            if r.emoji.user != None:
+                                user_name = r.emoji.user.name
+                                user_id =  r.emoji.user.id
+                                user_discriminator = r.emoji.user.discriminator
+                                user_display_name = r.emoji.user.display_name
+                            else:
+                                user_name = None
+                                user_id =  None
+                                user_discriminator = None
+                                user_display_name = None
                     else:
                         name = None
                         id = None
@@ -767,6 +773,9 @@ async def voiceStats(message, trigger):
         lastMute = None
         lastVideo = None
         lastStream = None
+        channel = None
+        channels = {}
+        last = None
         voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {message.guild.id} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
         #voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {613938772270383124} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
         for i in voiceLogs:
@@ -782,7 +791,11 @@ async def voiceStats(message, trigger):
                 
                 if i['AFTER_SELF_VIDEO'] == 1:
                     lastVideo = lastJoin
-                
+                '''
+                channel = i['AFTER_CHANNEL_ID']
+                if channel not in channels:
+                    channels[channel] = datetime.now() - datetime.now()
+                '''       
             elif i['EVENT'] == 'DEAFEN':
                 lastDeafen = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
 
@@ -798,11 +811,18 @@ async def voiceStats(message, trigger):
             elif i['EVENT'] == 'LEAVE_VOICE':
                 if lastJoin != None:
                     end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                    last = end - lastJoin
                     if chatTime != None:
-                        chatTime = chatTime + (end - lastJoin)
+                        chatTime = chatTime + last
                     else:
-                        chatTime = (end - lastJoin)
+                        chatTime = last
                     lastJoin = None
+
+                    '''
+                    if channel != None:
+                        channels[channel] = channels[channel] + last
+                        channel = None
+                    '''
 
                 if lastDeafen != None:
                     end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
@@ -871,7 +891,25 @@ async def voiceStats(message, trigger):
                     else:
                         streamTime = (end - lastStream)
                     lastStream = None
-            #elif i['EVENT'] == 'JOIN_VOICE':
+
+            '''          
+            elif i['EVENT'] == 'CHANNEL_CHANGE':
+                if channel != None:
+                    channels[channel] = channels[channel] + last
+                
+                channel = i['AFTER_CHANNEL_ID']
+                if channel not in channels:
+                    channels[channel] = datetime.now() - datetime.now()
+
+                if lastJoin != None:
+                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                    last = end - lastJoin
+                    if chatTime != None:
+                        chatTime = chatTime + last
+                    else:
+                        chatTime = last
+                    lastJoin = None
+            '''
 
         #now get current values if there are any
         if lastJoin != None:
@@ -917,7 +955,7 @@ async def voiceStats(message, trigger):
         streamTime = formatTimeDelta(streamTime)
         videoTime = formatTimeDelta(videoTime)
 
-        e = discord.Embed(title = f"{user.display_name}'s Voice Stats", description = f'GlobalBot started recording voice activity on {start}.')
+        e = discord.Embed(title = f"{user.display_name}'s Voice Stats", description = f'{client.user.name} started tracking voice activity on {start}.')
         e.set_author(name = client.user.name, icon_url = client.user.avatar_url)
         e.add_field(name = 'Time in Voice', value = chatTime, inline = False)
         e.add_field(name = 'Time Muted', value = mutedTime, inline = False)
@@ -1091,7 +1129,7 @@ commands.append(command('randommessage', 'Sends a random message from the channe
 commands.append(command('source', 'Sends the link to the bot source code'))
 commands.append(command('getbackup', 'Creates and sends a backup of the server', 'getBackup'))
 commands.append(command('guilds', 'Displays a list of guilds the bot is connected to', admin = True))
-commands.append(command('voicestats', 'Displays voice stats for the specified user. Format: !voicestats @user', 'voiceStats'))
+commands.append(command('voicestats', 'Displays voice stats for the specified user. Optionally a user can be specified. Format: !voicestats @user', 'voiceStats'))
 loadUserCommands()
 
 #launch the refresh timer
