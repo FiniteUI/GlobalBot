@@ -882,10 +882,10 @@ async def voiceStats(message, trigger):
         e = discord.Embed(title = f"{user.display_name}'s Voice Stats", description = f'GlobalBot started recording voice activity on {start}.')
         e.set_author(name = client.user.name, icon_url = client.user.avatar_url)
         e.add_field(name = 'Time in Voice', value = chatTime)
-        e.add_field(name = 'Time Muted', value = chatTime)
-        e.add_field(name = 'Time Deafened', value = chatTime)
-        e.add_field(name = 'Time Streaming', value = chatTime)
-        e.add_field(name ='Time in Video', value = chatTime)
+        e.add_field(name = 'Time Muted', value = mutedTime)
+        e.add_field(name = 'Time Deafened', value = deafenedTime)
+        e.add_field(name = 'Time Streaming', value = streamTime)
+        e.add_field(name ='Time in Video', value = videoTime)
 
         await sendMessage(message, f'Here are your voice stats {user.mention}', triggeredCommand = trigger, embedItem = e)
 
