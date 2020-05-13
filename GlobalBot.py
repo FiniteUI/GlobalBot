@@ -878,8 +878,16 @@ async def voiceStats(message, trigger):
         deafenedTime = formatTimeDelta(deafenedTime)
         streamTime = formatTimeDelta(streamTime)
         videoTime = formatTimeDelta(videoTime)
-        activity = f'Since {client.user.mention} started recording voice activity on {start} CST, {user.mention} has spent:\n{chatTime} in voice chat\n{mutedTime} muted\n{deafenedTime} deafeaned\n{streamTime} streaming\nand {videoTime} video chatting'
-        await sendMessage(message, activity, triggeredCommand = trigger)
+
+        e = discord.Embed(title = f"{message.author.display_name}'s Voice Stats", description = f'GlobalBot started recording voice activity on {start}.')
+        e.set_author(name = client.user.name, icon_url = client.user.avatar_url)
+        e.add_field(name = 'Time in Voice', value = chatTime)
+        e.add_field(name = 'Time Muted', value = chatTime)
+        e.add_field(name = 'Time Deafened', value = chatTime)
+        e.add_field(name = 'Time Streaming', value = chatTime)
+        e.add_field(name ='Time in Video', value = chatTime)
+
+        await sendMessage(message, f'Here are your voice stats {user.mention}', triggeredCommand = trigger, embedItem = e)
 
 #formats a timedelta object into a string with days, hours, minutes, seconds
 def formatTimeDelta(duration):
