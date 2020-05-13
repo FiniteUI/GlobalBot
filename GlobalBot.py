@@ -752,11 +752,10 @@ async def guilds(message, trigger):
 
 #displays voice stats for the specified user
 async def voiceStats(message, trigger):
-    user = message.mentions
-    if len(user) != 1:
-        await sendMessage(message, 'Invalid format. Correct format is !voicestats @user.', deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
-    else:
-        user = user[0]
+    users = message.mentions
+    if len(users) == 0:
+        users = [message.author]
+    for user in users:
         chatTime = None
         streamTime = None
         mutedTime = None
@@ -770,10 +769,7 @@ async def voiceStats(message, trigger):
         lastStream = None
         voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {message.guild.id} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
         #voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {613938772270383124} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
-        #names = voiceLogs.keys()
         for i in voiceLogs:
-            #print(i[31])
-            #print(i['EVENT'])
             if i['EVENT'] == 'JOIN_VOICE':
                 lastJoin = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
                 if i['AFTER_SELF_DEAF'] == 1:
