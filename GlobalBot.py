@@ -879,7 +879,7 @@ async def voiceStats(message, trigger):
         streamTime = formatTimeDelta(streamTime)
         videoTime = formatTimeDelta(videoTime)
 
-        e = discord.Embed(title = f"{message.author.display_name}'s Voice Stats", description = f'GlobalBot started recording voice activity on {start}.')
+        e = discord.Embed(title = f"{user.display_name}'s Voice Stats", description = f'GlobalBot started recording voice activity on {start}.')
         e.set_author(name = client.user.name, icon_url = client.user.avatar_url)
         e.add_field(name = 'Time in Voice', value = chatTime)
         e.add_field(name = 'Time Muted', value = chatTime)
@@ -897,6 +897,11 @@ def formatTimeDelta(duration):
     days, remainder = divmod(duration.total_seconds(), 86400)
     hours, remainder = divmod(remainder, 3600)
     minutes, seconds = divmod(remainder, 60)
+
+    days = int(days)
+    hours = int(hours)
+    minutes = int(minutes)
+    seconds = int(seconds)
 
     formattedDuration = ''
     if days != 0:
