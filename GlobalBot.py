@@ -768,8 +768,8 @@ async def voiceStats(message, trigger):
         lastMute = None
         lastVideo = None
         lastStream = None
-        voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {message.guild.id} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
-        #voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {613938772270383124} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
+        #voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {message.guild.id} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
+        voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {613938772270383124} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
         #names = voiceLogs.keys()
         for i in voiceLogs:
             #print(i[31])
@@ -835,41 +835,41 @@ async def voiceStats(message, trigger):
                     lastStream = None
             #elif i['EVENT'] == 'JOIN_VOICE':
 
-            #now get current values if there are any
-            if lastJoin != None:
-                end = datetime.now()
-                if chatTime != None:
-                    chatTime = chatTime + (end - lastJoin)
-                else:
-                    chatTime = (end - lastJoin)
+        #now get current values if there are any
+        if lastJoin != None:
+            end = datetime.now()
+            if chatTime != None:
+                chatTime = chatTime + (end - lastJoin)
+            else:
+                chatTime = (end - lastJoin)
 
-            if lastDeafen != None:
-                end = datetime.now()
-                if deafenedTime != None:
-                    deafenedTime = deafenedTime + (end - lastDeafen)
-                else:
-                    deafenedTime = (end - lastDeafen)
+        if lastDeafen != None:
+            end = datetime.now()
+            if deafenedTime != None:
+                deafenedTime = deafenedTime + (end - lastDeafen)
+            else:
+                deafenedTime = (end - lastDeafen)
 
-            if lastMute != None:
-                end = datetime.now()
-                if mutedTime != None:
-                    mutedTime = mutedTime + (end - lastMute)
-                else:
-                    mutedTime = (end - lastMute)
+        if lastMute != None:
+            end = datetime.now()
+            if mutedTime != None:
+                mutedTime = mutedTime + (end - lastMute)
+            else:
+                mutedTime = (end - lastMute)
 
-            if lastVideo != None:
-                end = datetime.now()
-                if videoTime != None:
-                    videoTime = videoTime + (end - lastVideo)
-                else:
-                    videoTime = (end - lastVideo)
-            
-            if lastStream != None:
-                end = datetime.now()
-                if streamTime != None:
-                    streamTime = streamTime + (end - lastStream)
-                else:
-                    streamTime = (end - lastStream)
+        if lastVideo != None:
+            end = datetime.now()
+            if videoTime != None:
+                videoTime = videoTime + (end - lastVideo)
+            else:
+                videoTime = (end - lastVideo)
+        
+        if lastStream != None:
+            end = datetime.now()
+            if streamTime != None:
+                streamTime = streamTime + (end - lastStream)
+            else:
+                streamTime = (end - lastStream)
 
         start = convertUTCToTimezone(datetime.strptime('2020-04-28 01:08:16.990281', '%Y-%m-%d %H:%M:%S.%f'), 'US/Central')
         start = datetime.strftime(start, '%B %d, %Y at %I:%M %p')
