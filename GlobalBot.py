@@ -768,15 +768,25 @@ async def voiceStats(message, trigger):
         lastMute = None
         lastVideo = None
         lastStream = None
-        voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {message.guild.id} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
-        #voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {613938772270383124} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
+        #voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {message.guild.id} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
+        voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {613938772270383124} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
         #names = voiceLogs.keys()
         for i in voiceLogs:
             #print(i[31])
             #print(i['EVENT'])
             if i['EVENT'] == 'JOIN_VOICE':
                 lastJoin = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                if i['AFTER_SELF_DEAF'] == 1:
+                    lastDeafen = lastJoin
+                elif i['AFTER_SELF_MUTE'] == 1:
+                    lastMute = lastJoin
 
+                if i['AFTER_SELF_STREAM'] == 1:
+                    lastStream = lastJoin
+                
+                if i['AFTER_SELF_VIDEO'] == 1:
+                    lastVideo = lastJoin
+                
             elif i['EVENT'] == 'DEAFEN':
                 lastDeafen = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
 
@@ -797,6 +807,38 @@ async def voiceStats(message, trigger):
                     else:
                         chatTime = (end - lastJoin)
                     lastJoin = None
+
+                if lastDeafen != None:
+                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                    if deafenedTime != None:
+                        deafenedTime = deafenedTime + (end - lastDeafen)
+                    else:
+                        deafenedTime = (end - lastDeafen)
+                    lastDeafen = None
+
+                if lastMute != None:
+                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                    if mutedTime != None:
+                        mutedTime = mutedTime + (end - lastMute)
+                    else:
+                        mutedTime = (end - lastMute)
+                    lastMute = None
+
+                if lastVideo != None:
+                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                    if videoTime != None:
+                        videoTime = videoTime + (end - lastVideo)
+                    else:
+                        videoTime = (end - lastVideo)
+                    lastVideo = None
+
+                if lastStream != None:
+                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
+                    if streamTime != None:
+                        streamTime = streamTime + (end - lastStream)
+                    else:
+                        streamTime = (end - lastStream)
+                    lastStream = None
 
             elif i['EVENT'] == 'UNDEAFEN':
                 if lastDeafen != None:
