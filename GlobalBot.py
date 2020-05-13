@@ -919,18 +919,19 @@ async def voiceStats(message, trigger):
 
         e = discord.Embed(title = f"{user.display_name}'s Voice Stats", description = f'GlobalBot started recording voice activity on {start}.')
         e.set_author(name = client.user.name, icon_url = client.user.avatar_url)
-        e.add_field(name = 'Time in Voice', value = chatTime)
-        e.add_field(name = 'Time Muted', value = mutedTime)
-        e.add_field(name = 'Time Deafened', value = deafenedTime)
-        e.add_field(name = 'Time Streaming', value = streamTime)
-        e.add_field(name ='Time in Video', value = videoTime)
+        e.add_field(name = 'Time in Voice', value = chatTime, inline = False)
+        e.add_field(name = 'Time Muted', value = mutedTime, inline = False)
+        e.add_field(name = 'Time Deafened', value = deafenedTime, inline = False)
+        e.add_field(name = 'Time Streaming', value = streamTime, inline = False)
+        e.add_field(name ='Time in Video', value = videoTime, inline = False)
 
         await sendMessage(message, f'Here are your voice stats {user.mention}', triggeredCommand = trigger, embedItem = e)
 
 #formats a timedelta object into a string with days, hours, minutes, seconds
 def formatTimeDelta(duration):
     if duration == None:
-        return '0 s'
+        #return '0 s'
+        return '0 seconds'
 
     days, remainder = divmod(duration.total_seconds(), 86400)
     hours, remainder = divmod(remainder, 3600)
@@ -943,13 +944,17 @@ def formatTimeDelta(duration):
 
     formattedDuration = ''
     if days != 0:
-        formattedDuration = f'{days} d, {hours} h, {minutes} m, {seconds} s'
+        #formattedDuration = f'{days} d, {hours} h, {minutes} m, {seconds} s'
+        formattedDuration = f'{days} days, {hours} hours, {minutes} minutes, {seconds} seconds'
     elif hours != 0:
-        formattedDuration = f'{hours} h, {minutes} m, {seconds} s'
+        #formattedDuration = f'{hours} h, {minutes} m, {seconds} s'
+        formattedDuration = f'{hours} hours, {minutes} minutes, {seconds} seconds'
     elif minutes != 0:
-        formattedDuration = f'{minutes} m, and {seconds} s'
+        #formattedDuration = f'{minutes} m, and {seconds} s'
+        formattedDuration = f'{minutes} minutes, {seconds} seconds'
     else:
-        formattedDuration = f'{seconds} s'
+        #formattedDuration = f'{seconds} s'
+        formattedDuration = f'{seconds} seconds'
 
     return formattedDuration
 
