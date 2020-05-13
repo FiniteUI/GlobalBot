@@ -829,7 +829,7 @@ async def voiceStats(message, trigger):
                 if lastStream != None:
                     end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
                     if streamTime != None:
-                        streamTime = videoTime + (end - lastStream)
+                        streamTime = streamTime + (end - lastStream)
                     else:
                         streamTime = (end - lastStream)
                     lastStream = None
