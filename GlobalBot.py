@@ -834,9 +834,73 @@ async def voiceStats(message, trigger):
                         streamTime = (end - lastStream)
                     lastStream = None
             #elif i['EVENT'] == 'JOIN_VOICE':
-        
-        activity = f'Since {client.user.mention} started recording voice activity on 2020-04-28 01:08:16.990281 UTC, {user.mention} has spent:\n{chatTime} in voice chat\n{mutedTime} muted\n{deafenedTime} deafeaned\n{streamTime} streaming\nand {videoTime} video chatting.\nWow!'
+
+            #now get current values if there are any
+            if lastJoin != None:
+                end = datetime.now()
+                if chatTime != None:
+                    chatTime = chatTime + (end - lastJoin)
+                else:
+                    chatTime = (end - lastJoin)
+
+            if lastDeafen != None:
+                end = datetime.now()
+                if deafenedTime != None:
+                    deafenedTime = deafenedTime + (end - lastDeafen)
+                else:
+                    deafenedTime = (end - lastDeafen)
+
+            if lastMute != None:
+                end = datetime.now()
+                if mutedTime != None:
+                    mutedTime = mutedTime + (end - lastMute)
+                else:
+                    mutedTime = (end - lastMute)
+
+            if lastVideo != None:
+                end = datetime.now()
+                if videoTime != None:
+                    videoTime = videoTime + (end - lastVideo)
+                else:
+                    videoTime = (end - lastVideo)
+            
+            if lastStream != None:
+                end = datetime.now()
+                if streamTime != None:
+                    streamTime = videoTime + (end - lastStream)
+                else:
+                    streamTime = (end - lastStream)
+
+        start = convertUTCToTimezone(datetime.strptime('2020-04-28 01:08:16.990281', '%Y-%m-%d %H:%M:%S.%f'), 'US/Central')
+        start = datetime.strftime(start, '%B %d, %Y at %I:%M %p')
+        chatTime = formatTimeDelta(chatTime)
+        mutedTime = formatTimeDelta(mutedTime)
+        deafenedTime = formatTimeDelta(deafenedTime)
+        streamTime = formatTimeDelta(streamTime)
+        videoTime = formatTimeDelta(videoTime)
+        activity = f'Since {client.user.mention} started recording voice activity on {start} CST, {user.mention} has spent:\n{chatTime} in voice chat\n{mutedTime} muted\n{deafenedTime} deafeaned\n{streamTime} streaming\nand {videoTime} video chatting.\nWow!'
         await sendMessage(message, activity, triggeredCommand = trigger)
+
+#formats a timedelta object into a string with days, hours, minutes, seconds
+def formatTimeDelta(duration):
+    if duration == None:
+        return '0 seconds'
+
+    days, remainder = divmod(duration.total_seconds(), 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    formattedDuration = ''
+    if days != 0:
+        formattedDuration = f'{days} days, {hours} hours, {minutes} minutes, and {seconds} seconds'
+    elif hours != 0:
+        formattedDuration = f'{hours} hours, {minutes} minutes, and {seconds} seconds'
+    elif minutes != 0:
+        formattedDuration = f'{minutes} minutes, and {seconds} seconds'
+    else:
+        formattedDuration = f'{seconds} seconds'
+
+    return formattedDuration
 
 #load client
 load_dotenv('.env')
