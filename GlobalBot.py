@@ -971,9 +971,10 @@ async def voiceStats(message, trigger):
             i = i / totalSize
 
         pieChart, ax1 = matplotlib.pyplot.subplots()
-        ax1.pie(sizes, labels = labels, autopct='%1.1f%%',
+        ax1.pie(sizes, autopct='%1.2f%%',
         shadow=True, startangle=90)
         ax1.axis('equal')
+        ax1.legend(labels = labels)
         #matplotlib.pyplot.show()
 
         #now save the chart
