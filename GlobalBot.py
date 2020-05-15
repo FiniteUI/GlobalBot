@@ -22,6 +22,7 @@ import csv
 import zipfile
 import zlib
 import matplotlib
+import matplotlib.pyplot
 
 #command class
 class command:
@@ -162,16 +163,32 @@ async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteA
             await triggerMessage.channel.send(sendMessage, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
 
 #sends a message to the channel
-async def sendChannelMessage(message, channelID, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None):
-    x = client.get_channel(channelID)
-    addLog(f'''Sending message "{message}" to channel {x.name} in server {x.guild}, {x.guild.id}.''', inspect.currentframe().f_code.co_name, server = x.guild.name, serverID = x.guild.id, channel = x.name, channelID = x.id)
+async def sendChannelMessage(message, channelID, triggerMessage, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None, triggeredCommand = None, codeBlock = False, attachment = None):
+    sendChannel = client.get_channel(channelID)
+    addLog(f'''Sending message "{message}" to channel {sendChannel.name} in server {sendChannel.guild}, {sendChannel.guild.id}.''', inspect.currentframe().f_code.co_name, server = sendChannel.guild.name, serverID = sendChannel.guild.id, channel = sendChannel.name, channelID = sendChannel.id, command = triggeredCommand)
 
+    '''
     if len(message) > 2000:
         x = chunkstring(message, 2000)
         for i in x:
             await x.send(i, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
     else:
         await x.send(message, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
+    '''
+
+        #message limit is 2000 characters, we may add 2 if codeBlock, so our limit is 1998
+    if len(message) > 1998:
+        x = chunkStringNewLine(message, 1998)
+        for i in x:
+            if codeBlock:
+                await sendChannel.send(f'`{i}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
+            else:
+                await sendChannel.send(i, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
+    else:
+        if codeBlock:
+            await sendChannel.send(f'`{message}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
+        else:
+            await sendChannel.send(message, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
 
 #lists available commands
 async def help(message, trigger):
@@ -762,13 +779,14 @@ async def voiceStats(message, trigger):
     if len(users) == 0:
         users = [message.author]
     for user in users:
+        addLog(f'Generating voice stats for {user}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
         chatTime = None
         streamTime = None
         mutedTime = None
         deafenedTime = None
         videoTime = None
-        #channels = []
         lastJoin = None
+        lastChange = None
         lastDeafen = None
         lastMute = None
         lastVideo = None
@@ -791,11 +809,12 @@ async def voiceStats(message, trigger):
                 
                 if i['AFTER_SELF_VIDEO'] == 1:
                     lastVideo = lastJoin
-                '''
+
                 channel = i['AFTER_CHANNEL_ID']
                 if channel not in channels:
                     channels[channel] = datetime.now() - datetime.now()
-                '''       
+                lastChange = lastJoin
+
             elif i['EVENT'] == 'DEAFEN':
                 lastDeafen = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
 
@@ -818,11 +837,10 @@ async def voiceStats(message, trigger):
                         chatTime = last
                     lastJoin = None
 
-                    '''
                     if channel != None:
-                        channels[channel] = channels[channel] + last
+                        channels[channel] = channels[channel] + (end - lastChange)
                         channel = None
-                    '''
+                        lastChange = None
 
                 if lastDeafen != None:
                     end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
@@ -891,25 +909,16 @@ async def voiceStats(message, trigger):
                     else:
                         streamTime = (end - lastStream)
                     lastStream = None
-
-            '''          
+    
             elif i['EVENT'] == 'CHANNEL_CHANGE':
+                end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
                 if channel != None:
-                    channels[channel] = channels[channel] + last
+                    channels[channel] = channels[channel] + (end - lastChange)
+                lastChange = end
                 
                 channel = i['AFTER_CHANNEL_ID']
                 if channel not in channels:
                     channels[channel] = datetime.now() - datetime.now()
-
-                if lastJoin != None:
-                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                    last = end - lastJoin
-                    if chatTime != None:
-                        chatTime = chatTime + last
-                    else:
-                        chatTime = last
-                    lastJoin = None
-            '''
 
         #now get current values if there are any
         if lastJoin != None:
@@ -918,6 +927,7 @@ async def voiceStats(message, trigger):
                 chatTime = chatTime + (end - lastJoin)
             else:
                 chatTime = (end - lastJoin)
+            channels[channel] = channels[channel] + (end - lastChange)
 
         if lastDeafen != None:
             end = datetime.now()
@@ -946,6 +956,43 @@ async def voiceStats(message, trigger):
                 streamTime = streamTime + (end - lastStream)
             else:
                 streamTime = (end - lastStream)
+        
+        #now get channel names and format pie chart
+        labels = ()
+        sizes = []
+        for i in channels:
+            for x in message.guild.channels:
+                if int(i) == x.id:
+                    labels = labels + (x.name,)
+            sizes.append(channels[i].total_seconds())
+        
+        totalSize = sum(sizes)
+        for i in sizes:
+            i = i / totalSize
+
+        pieChart, ax1 = matplotlib.pyplot.subplots()
+        ax1.pie(sizes, labels = labels, autopct='%1.1f%%',
+        shadow=True, startangle=90)
+        ax1.axis('equal')
+        #matplotlib.pyplot.show()
+
+        #now save the chart
+        directory = os.getcwd()
+        directory = os.path.join(directory, 'User Requested Voice Stats', str(message.guild.id), str(message.author.id))
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+
+        directory = os.path.join(directory, datetime.now().strftime('%Y%m%d%H%M%S%f'))
+        matplotlib.pyplot.savefig(directory)
+        chart = discord.File(f'{directory}.png')
+        await sendChannelMessage('', 710669506498002954, message, attachment = chart)
+        attachmentChannel = client.get_channel(710669506498002954)
+        attachmentMessage = await attachmentChannel.fetch_message(attachmentChannel.last_message_id)
+        
+        if len(attachmentMessage.attachments) > 0:
+            attachment = attachmentMessage.attachments[0].url
+        else:
+             attachment = discord.Embed.Empty
 
         start = convertUTCToTimezone(datetime.strptime('2020-04-28 01:08:16.990281', '%Y-%m-%d %H:%M:%S.%f'), 'US/Central')
         start = datetime.strftime(start, '%B %d, %Y at %I:%M %p')
@@ -957,11 +1004,13 @@ async def voiceStats(message, trigger):
 
         e = discord.Embed(title = f"{user.display_name}'s Voice Stats", description = f'{client.user.name} started tracking voice activity on {start}.')
         e.set_author(name = client.user.name, icon_url = client.user.avatar_url)
-        e.add_field(name = 'Time in Voice', value = chatTime, inline = False)
-        e.add_field(name = 'Time Muted', value = mutedTime, inline = False)
-        e.add_field(name = 'Time Deafened', value = deafenedTime, inline = False)
-        e.add_field(name = 'Time Streaming', value = streamTime, inline = False)
-        e.add_field(name ='Time in Video', value = videoTime, inline = False)
+        e.add_field(name = 'Time in Voice', value = chatTime, inline = True)
+        e.add_field(name = 'Time Muted', value = mutedTime, inline = True)
+        e.add_field(name = 'Time Deafened', value = deafenedTime, inline = True)
+        e.add_field(name = 'Time Streaming', value = streamTime, inline = True)
+        e.add_field(name ='Time in Video', value = videoTime, inline = True)
+
+        e.set_image(url = attachment)
 
         await sendMessage(message, f'Here are your voice stats {user.mention}', triggeredCommand = trigger, embedItem = e)
 
