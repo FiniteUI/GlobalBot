@@ -599,7 +599,7 @@ def convertUTCToTimezone(utc_timestamp, timezone):
 
 #sends a random file attachment from chat
 async def randomAttachment(message, trigger):
-    attachments = select(f"select author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif'")
+    attachments = select(f"select author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id <> {testServer}")
     index = random.randrange(0, len(attachments), 1)
     attachment = attachments[index][1]
     author = client.get_user(attachments[index][0])
