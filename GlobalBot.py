@@ -664,7 +664,9 @@ async def update(message, trigger):
     await restart(message, trigger)
 
 #nightly refresh, backup, update, restart
-async def refresh(message = None, trigger = None):
+async def refresh(message = None, trigger = None, silent = False):
+    if not silent:
+        await sendMessage(message, "Starting Global Refresh...", textToSpeech = False, deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
     if len(client.guilds) > 0:
         for guild in client.guilds:
             await backup(trigger = 'refresh', silent = True, fromMessage = False, overrideGuild = guild)
@@ -674,7 +676,7 @@ async def refresh(message = None, trigger = None):
 def callRefresh():
     global loop
     if date.today() != launchDate:
-        thisRefresh = asyncio.run_coroutine_threadsafe(refresh(), loop)
+        thisRefresh = asyncio.run_coroutine_threadsafe(refresh(silent = True), loop)
         thisRefresh.result()
     else:
         timer = threading.Timer(refreshInterval, callRefresh)
