@@ -575,6 +575,7 @@ async def listAdminCommands(message, trigger):
 async def kill(message, trigger):
     addLog(f'Killing bot process...', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
     await sendMessage(message, 'Killing bot process...',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
+    await asyncio.sleep(30)
     sys.stdout.flush()
     await exit()
 
