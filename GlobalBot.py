@@ -1051,6 +1051,22 @@ def formatTimeDelta(duration):
 
     return formattedDuration
 
+#sends tts message from the server
+async def randomtts(message, trigger):
+    #grab a random message
+    messages = select(f"select distinct id from MESSAGE_HISTORY where content <> '' and guild_id = {message.guild.id} and channel_id = {message.channel.id} and TTS = 1 and AUTHOR_ID <> = {client.user.id}")
+    x = random.randrange(0, len(messages), 1)
+    randomMessage = messages[x][0]
+    randomMessage = await message.channel.fetch_message(randomMessage)
+
+    central_timestamp = convertUTCToTimezone(randomMessage.created_at, 'US/Central')
+    central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+
+    text = f'On {central_timestamp}, {randomMessage.author.mention} said:\nLink: {randomMessage.jump_url}\n>>>'
+    addLog(f'Sending random tts message', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+    await sendMessage(message, text, triggeredCommand = trigger)
+    await sendMessage(message, randomMessage.content, triggeredCommand = trigger, textToSpeech = True)
+
 #load client
 load_dotenv('.env')
 token = os.getenv('DISCORD_TOKEN')
@@ -1185,6 +1201,7 @@ commands.append(command('source', 'Sends the link to the bot source code'))
 commands.append(command('getbackup', 'Creates and sends a backup of the server', 'getBackup'))
 commands.append(command('guilds', 'Displays a list of guilds the bot is connected to', admin = True))
 commands.append(command('voicestats', 'Displays voice stats for the specified user. Optionally a user can be specified. Format: !voicestats @user', 'voiceStats'))
+commands.append(command('randomtts', 'Sends a random tts message from the server'))
 loadUserCommands()
 
 #launch the refresh timer
