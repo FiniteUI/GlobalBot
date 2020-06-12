@@ -1054,7 +1054,7 @@ def formatTimeDelta(duration):
 #sends tts message from the server
 async def randomtts(message, trigger):
     #grab a random message
-    messages = select(f"select distinct id from MESSAGE_HISTORY where content <> '' and guild_id = {message.guild.id} and channel_id = {message.channel.id} and TTS = 1 and AUTHOR_ID <> = {client.user.id}")
+    messages = select(f"select distinct id from MESSAGE_HISTORY where content <> '' and guild_id = {message.guild.id} and channel_id = {message.channel.id} and TTS = 1 and AUTHOR_ID <> {client.user.id}")
     x = random.randrange(0, len(messages), 1)
     randomMessage = messages[x][0]
     randomMessage = await message.channel.fetch_message(randomMessage)
