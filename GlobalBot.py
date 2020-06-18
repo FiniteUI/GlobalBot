@@ -1051,9 +1051,9 @@ def formatTimeDelta(duration):
 async def randomtts(message, trigger):
     #first run the backup to get any new messages
     await backup(trigger = trigger, silent = True, fromMessage = False, overrideGuild = message.guild)
-    
+
     #grab a random message
-    messages = select(f"select distinct id from TTS_LOG A left join MESSAGE_HISTORY B on A.MESSAGE_ID = B.ID where content <> '' and guild_id = {message.guild.id} and TTS = 1 and AUTHOR_ID <> {client.user.id}")
+    messages = select(f"select distinct id from TTS_LOG A left join MESSAGE_HISTORY B on A.MESSAGE_ID = B.ID where content <> '' and guild_id = {message.guild.id} and AUTHOR_ID <> {client.user.id}")
     if len(messages) > 0:
         x = random.randrange(0, len(messages), 1)
         randomMessage = messages[x][0]
@@ -1062,10 +1062,10 @@ async def randomtts(message, trigger):
         central_timestamp = convertUTCToTimezone(randomMessage.created_at, 'US/Central')
         central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
-        text = f'On {central_timestamp}, {randomMessage.author.mention} said:\nLink: {randomMessage.jump_url}\n>>>'
+        text = f'On {central_timestamp}, {randomMessage.author.mention} said:\nLink: {randomMessage.jump_url}\n'
         addLog(f'Sending random tts message', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
         await sendMessage(message, text, triggeredCommand = trigger)
-        await sendMessage(message, randomMessage.content, triggeredCommand = trigger, textToSpeech = True)
+        await sendMessage(message, f'>>> {randomMessage.content}', triggeredCommand = trigger, textToSpeech = True)
 
 #save tts message ids to TTS_LOG
 def saveTTS(message):
