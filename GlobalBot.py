@@ -30,12 +30,12 @@ class command:
     description = ''
     function = ''
     userCommand = False
-    arguments = None
+    arguments = ''
     admin = False
     hidden = False
     server = -1
 
-    def __init__(self, trigger , description, function = '', userCommand = False, arguments = None, admin = False, hidden = False, server = -1):
+    def __init__(self, trigger , description, function = '', userCommand = False, arguments = '', admin = False, hidden = False, server = -1):
         self.trigger = trigger
         self.description = description
         
