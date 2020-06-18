@@ -1052,7 +1052,7 @@ async def randomtts(message, trigger):
 
 #save tts message ids to TTS_LOG
 def saveTTS(message):
-    addLog(f'Sending TTS message', inspect.currentframe().f_code.co_name, '', server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+    addLog(f'Saving TTS message', inspect.currentframe().f_code.co_name, '', server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
     con = openConnection()
     cur = con.cursor()
     cur.execute('insert into TTS_LOG (MESSAGE_ID) values (?)', [message.id])
