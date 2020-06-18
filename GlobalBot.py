@@ -167,16 +167,7 @@ async def sendChannelMessage(message, channelID, triggerMessage, textToSpeech = 
     sendChannel = client.get_channel(channelID)
     addLog(f'''Sending message "{message}" to channel {sendChannel.name} in server {sendChannel.guild}, {sendChannel.guild.id}.''', inspect.currentframe().f_code.co_name, server = sendChannel.guild.name, serverID = sendChannel.guild.id, channel = sendChannel.name, channelID = sendChannel.id, command = triggeredCommand)
 
-    '''
-    if len(message) > 2000:
-        x = chunkstring(message, 2000)
-        for i in x:
-            await x.send(i, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
-    else:
-        await x.send(message, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem)
-    '''
-
-        #message limit is 2000 characters, we may add 2 if codeBlock, so our limit is 1998
+    #message limit is 2000 characters, we may add 2 if codeBlock, so our limit is 1998
     if len(message) > 1998:
         x = chunkStringNewLine(message, 1998)
         for i in x:
@@ -600,7 +591,6 @@ def convertUTCToTimezone(utc_timestamp, timezone):
 
 #sends a random file attachment from chat
 async def randomAttachment(message, trigger):
-    #attachments = select(f"select author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id <> {testServer}")
     attachments = select(f"select author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id}")
     index = random.randrange(0, len(attachments), 1)
     attachment = attachments[index][1]
@@ -614,7 +604,6 @@ async def randomAttachment(message, trigger):
 
 #sends a random youtube video from chat
 async def randomVideo(message, trigger):
-    #videos = select(f"select distinct author_id, created_at, content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663'")
     videos = select(f"select distinct author_id, created_at, content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663' and GUILD_ID = {message.guild.id}")
     index = random.randrange(0, len(videos), 1)
     video = videos[index][2]
@@ -800,7 +789,6 @@ async def voiceStats(message, trigger):
         channels = {}
         last = None
         voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {message.guild.id} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
-        #voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {613938772270383124} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
         for i in voiceLogs:
             if i['EVENT'] == 'JOIN_VOICE':
                 lastJoin = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
@@ -980,7 +968,6 @@ async def voiceStats(message, trigger):
         shadow=True, startangle=90)
         ax1.axis('equal')
         ax1.legend(labels = labels)
-        #matplotlib.pyplot.show()
 
         #now save the chart
         directory = os.getcwd()
@@ -1023,7 +1010,6 @@ async def voiceStats(message, trigger):
 #formats a timedelta object into a string with days, hours, minutes, seconds
 def formatTimeDelta(duration):
     if duration == None:
-        #return '0 s'
         return '0 seconds'
 
     days, remainder = divmod(duration.total_seconds(), 86400)
@@ -1037,16 +1023,12 @@ def formatTimeDelta(duration):
 
     formattedDuration = ''
     if days != 0:
-        #formattedDuration = f'{days} d, {hours} h, {minutes} m, {seconds} s'
         formattedDuration = f'{days} days, {hours} hours, {minutes} minutes, {seconds} seconds'
     elif hours != 0:
-        #formattedDuration = f'{hours} h, {minutes} m, {seconds} s'
         formattedDuration = f'{hours} hours, {minutes} minutes, {seconds} seconds'
     elif minutes != 0:
-        #formattedDuration = f'{minutes} m, and {seconds} s'
         formattedDuration = f'{minutes} minutes, {seconds} seconds'
     else:
-        #formattedDuration = f'{seconds} s'
         formattedDuration = f'{seconds} seconds'
 
     return formattedDuration
@@ -1067,6 +1049,15 @@ async def randomtts(message, trigger):
         addLog(f'Sending random tts message', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
         await sendMessage(message, text, triggeredCommand = trigger)
         await sendMessage(message, randomMessage.content, triggeredCommand = trigger, textToSpeech = True)
+
+#save tts message ids to TTS_LOG
+def saveTTS(message):
+    addLog(f'Sending TTS message', inspect.currentframe().f_code.co_name, '', server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+    con = openConnection()
+    cur = con.cursor()
+    cur.execute('insert into TTS_LOG (MESSAGE_ID) values (?)', [message.id])
+    con.commit()
+    closeConnection(con)
 
 #load client
 load_dotenv('.env')
@@ -1098,6 +1089,10 @@ async def on_message(message):
         if message.guild.id != testServer:
             return
 
+    #save tts
+    if message.tts:
+        saveTTS(message)
+
     #check command
     if message.author.bot:
         return
@@ -1122,7 +1117,6 @@ async def on_message(message):
 
 @client.event
 async def on_voice_state_update(member, voiceStateBefore, voiceStateAfter):
-    #addLog(f'{member.guild} user {member.name} voice state change.', inspect.currentframe().f_code.co_name, server = member.guild.name, serverID = member.guild.id, invokedUser = member.name, invokedUserID = member.id, invokedUserDiscriminator = member.discriminator, invokedUserDisplayName = member.nick)
     con = openConnection()
     cur = con.cursor()
 
