@@ -1210,7 +1210,7 @@ commands.append(command('source', 'Sends the link to the bot source code'))
 commands.append(command('getbackup', 'Creates and sends a backup of the server', 'getBackup'))
 commands.append(command('guilds', 'Displays a list of guilds the bot is connected to', admin = True))
 commands.append(command('voicestats', 'Displays voice stats for the specified user. Optionally a user can be specified. Format: !voicestats @user', 'voiceStats'))
-commands.append(command('randomtts', 'Sends a random tts message from the server', hidden = True))
+commands.append(command('randomtts', 'Sends a random tts message from the server'))
 loadUserCommands()
 
 #launch the refresh timer
