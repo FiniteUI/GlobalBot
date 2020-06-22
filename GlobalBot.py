@@ -35,7 +35,7 @@ class command:
     hidden = False
     server = -1
 
-    def __init__(self, trigger , description, function = '', userCommand = False, arguments = '', admin = False, hidden = False, server = -1):
+    def __init__(self, trigger, description, function = '', userCommand = False, arguments = '', admin = False, hidden = False, server = -1):
         self.trigger = trigger
         self.description = description
         
@@ -58,12 +58,14 @@ class command:
             
 #returns and open connection to the database
 def openConnection():
+    addLog('Opening database connection', inspect.currentframe().f_code.co_name, printLog = False)
     con = sqlite3.connect(database)
     con.row_factory = sqlite3.Row
     return con
 
 #closes the given database connection
 def closeConnection(con):
+    addLog('Closing database connection', inspect.currentframe().f_code.co_name, printLog = False)
     con.close()
 
 #prints a message in the shell and adds it to BOT_LOG
