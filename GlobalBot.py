@@ -1050,7 +1050,7 @@ def formatTimeDelta(duration):
 #sends tts message from the server
 async def randomtts(message, trigger):
     #first run the backup to get any new messages
-    await backup(trigger = trigger, silent = True, fromMessage = False, overrideGuild = message.guild)
+    #await backup(trigger = trigger, silent = True, fromMessage = False, overrideGuild = message.guild)
 
     #grab a random message
     messages = select(f"select distinct id from TTS_LOG A inner join MESSAGE_HISTORY B on A.MESSAGE_ID = B.ID where content <> '' and guild_id = {message.guild.id} and AUTHOR_ID <> {client.user.id}")
