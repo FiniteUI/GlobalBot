@@ -662,7 +662,7 @@ async def update(message, trigger):
     contents = repo.get_contents("GlobalBot.py")
     data = contents.decoded_content.decode('UTF-8')
 
-    f = open('GlobalBot.py', 'w+', encoding = 'utf-8')
+    f = open('GlobalBot.py', 'w+', encoding = 'UTF-8')
     f.write(data)
     f.close() 
 
