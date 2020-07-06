@@ -602,7 +602,7 @@ def convertUTCToTimezone(utc_timestamp, timezone):
 
 #sends a random file attachment from chat
 async def randomAttachment(message, trigger):
-    attachments = select(f"select author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id}")
+    attachments = select(f"select author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id} and message_attachment_history.id not in (select ATTACHMENT_ID from RANDOM_ATTACHMENT_BLACKLIST where GUILD_ID = {message.guild.id})")
     index = random.randrange(0, len(attachments), 1)
     attachment = attachments[index][1]
     author = client.get_user(attachments[index][0])
@@ -1177,13 +1177,51 @@ async def on_voice_state_update(member, voiceStateBefore, voiceStateAfter):
     else:
         event = 'OTHER'
 
+    addLog(f'{member.guild.id} user {member} voice state update {event}.', inspect.currentframe().f_code.co_name, '', server = member.guild.name, serverID = member.guild.id, invokedUser = member.name, invokedUserID = member.id, invokedUserDiscriminator = member.discriminator, invokedUserDisplayName = member.nick)
+
     record = [datetime.now(), str(member.guild), member.guild.id, member.guild.name, member.id, member.name, member.discriminator, member.display_name, member.bot, member.is_on_mobile(), voiceStateBefore.deaf, voiceStateBefore.mute, voiceStateBefore.self_mute, voiceStateBefore.self_deaf, voiceStateBefore.self_stream, voiceStateBefore.self_video, voiceStateBefore.afk, str(voiceStateBefore.channel), beforeChannelID, beforeChannelName, voiceStateAfter.deaf, voiceStateAfter.mute, voiceStateAfter.self_mute, voiceStateAfter.self_deaf, voiceStateAfter.self_stream, voiceStateAfter.self_video, voiceStateAfter.afk, str(voiceStateAfter.channel), afterChannelID, afterChannelName, event]
 
     cur.execute('insert into VOICE_ACTIVITY (RECORD_TIMESTAMP, GUILD, GUILD_ID, GUILD_NAME, USER_ID, USER_NAME, USER_DISCRIMINATOR, USER_DISPLAY_NAME, BOT, MOBILE, BEFORE_DEAF, BEFORE_MUTE, BEFORE_SELF_MUTE, BEFORE_SELF_DEAF, BEFORE_SELF_STREAM, BEFORE_SELF_VIDEO, BEFORE_AFK, BEFORE_CHANNEL, BEFORE_CHANNEL_ID, BEFORE_CHANNEL_NAME, AFTER_DEAF, AFTER_MUTE, AFTER_SELF_MUTE, AFTER_SELF_DEAF, AFTER_SELF_STREAM, AFTER_SELF_VIDEO, AFTER_AFK, AFTER_CHANNEL, AFTER_CHANNEL_ID, AFTER_CHANNEL_NAME, EVENT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
 
     con.commit()
     closeConnection(con)
-    
+
+@client.event
+async def on_reaction_add(reaction, user):
+    #for now just using this to log blacklisting of random attachment attachments with ❌
+    #check if this was on a message sent by Global Bot
+    if (reaction.message.author == client.user):
+        #check if proper emoji
+        if (str(reaction.emoji) == "❌"): 
+            #check if this was a random attachment message
+            if "Courtesy of" in reaction.message.content and "https://cdn.discordapp.com/attachments" in reaction.message.content:
+                #first get some extra info. Need the attachment ID and original message ID
+                #url is https://cdn.discordapp.com/attachments/***CHANNEL-ID***/***ATTACHMENT-ID***/***ATTACHMENT_NAME***
+                extractor = URLExtract()
+                urls = extractor.find_urls(reaction.message.content)
+                
+                if len(urls) > 0:
+                    attachmentURL = urls[0]
+                    attachmentID = attachmentURL.replace(f'https://cdn.discordapp.com/attachments/', '')
+                    attachmentID = attachmentID.split('/')[1]
+                    result = select(f"select RECORD_ID, URL, MESSAGE_ID from MESSAGE_ATTACHMENT_HISTORY where ID = '{attachmentID}'")
+                    if len(result) > 0:
+                        attachmentLocalID = result[0]['RECORD_ID']
+                        originalMessageID = result[0]['MESSAGE_ID']
+                    else:
+                        attachmentLocalID = None
+                        originalMessageID = None
+
+                    addLog(f'User {user} blacklisting attachment {attachmentID} in guild {reaction.guild.id}', inspect.currentframe().f_code.co_name, '', server = reaction.message.guild.name, serverID = reaction.message.guild.id, channel = reaction.message.channel.name, channelID = reaction.message.channel.id, invokedUser = user.name, invokedUserID = user.id, invokedUserDiscriminator = user.discriminator, invokedUserDisplayName = user.nick, messageID = reaction.message.id)
+                
+                    #here add it to the blacklist table
+                    con = openConnection()
+                    cur = con.cursor()
+                    data = [datetime.now(), reaction.message.guild.id, user.id, user.name, user.discriminator, reaction.message.id, attachmentID, attachmentLocalID, attachmentURL, originalMessageID]
+                    cur.execute('insert into RANDOM_ATTACHMENT_BLACKLIST (RECORD_TIMESTAMP, GUILD_ID, BLACKLISTER_ID, BLACKLISTER_NAME, BLACKLISTER_DISCRIMINATOR, RANDOM_ATTACHMENT_MESSAGE_ID, ATTACHMENT_ID, ATTACHMENT_LOCAL_ID, ATTACHMENT_URL, ORIGINAL_MESSAGE_ID) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', data)
+                    con.commit()
+                    closeConnection(con)
+
 #load commands
 commands = []
 commands.append(command('help', 'Displays a list of available commands'))
