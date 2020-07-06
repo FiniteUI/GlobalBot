@@ -1192,7 +1192,7 @@ async def on_reaction_add(reaction, user):
     #check if this was on a message sent by Global Bot
     if (reaction.message.author == client.user):
         #check if proper emoji
-        if (str(reaction.emoji) == "❌"): 
+        if (str(reaction.emoji) == "\u274c"): 
             #check if this was a random attachment message
             if "Courtesy of" in reaction.message.content and "https://cdn.discordapp.com/attachments" in reaction.message.content:
                 #first get some extra info. Need the attachment ID and original message ID
