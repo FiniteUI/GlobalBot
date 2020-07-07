@@ -547,7 +547,7 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
     closeConnection(con)
     totaltime = time.time() - startTime
     if not silent:
-        await sendMessage(message, f'Server {guild.name} backed up in {totaltime} seconds.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
+        await sendMessage(message, f'Server {guild.name} backed up in {totaltime} seconds.', triggeredCommand = trigger, codeBlock = True)
     addLog(f'Server {guild.name} backed up in {totaltime} seconds.', inspect.currentframe().f_code.co_name, trigger, server = guild.name, serverID = guild.id, channel = channelName, channelID = channelID, invokedUser = invokedUser.name, invokedUserID = invokedUser.id, invokedUserDiscriminator = invokedUser.discriminator, invokedUserDisplayName = displayName, messageID = messageID)
 
 #clears the backup of this server
@@ -1195,32 +1195,52 @@ async def on_reaction_add(reaction, user):
         if (str(reaction.emoji) == "\u274c"): 
             #check if this was a random attachment message
             if "Courtesy of" in reaction.message.content and "https://cdn.discordapp.com/attachments" in reaction.message.content:
-                #first get some extra info. Need the attachment ID and original message ID
-                #url is https://cdn.discordapp.com/attachments/***CHANNEL-ID***/***ATTACHMENT-ID***/***ATTACHMENT_NAME***
-                extractor = URLExtract()
-                urls = extractor.find_urls(reaction.message.content)
-                
-                if len(urls) > 0:
-                    attachmentURL = urls[0]
-                    attachmentID = attachmentURL.replace(f'https://cdn.discordapp.com/attachments/', '')
-                    attachmentID = attachmentID.split('/')[1]
-                    result = select(f"select RECORD_ID, URL, MESSAGE_ID from MESSAGE_ATTACHMENT_HISTORY where ID = '{attachmentID}'")
-                    if len(result) > 0:
-                        attachmentLocalID = result[0]['RECORD_ID']
-                        originalMessageID = result[0]['MESSAGE_ID']
-                    else:
-                        attachmentLocalID = None
-                        originalMessageID = None
+                #check if we have 3 or more votes
+                if reaction.count >= 3:
+                    #first get some extra info. Need the attachment ID and original message ID
+                    #url is https://cdn.discordapp.com/attachments/***CHANNEL-ID***/***ATTACHMENT-ID***/***ATTACHMENT_NAME***
+                    extractor = URLExtract()
+                    urls = extractor.find_urls(reaction.message.content)
+                    
+                    if len(urls) > 0:
+                        attachmentURL = urls[0]
+                        attachmentID = attachmentURL.replace(f'https://cdn.discordapp.com/attachments/', '')
+                        attachmentID = attachmentID.split('/')[1]
+                        result = select(f"select RECORD_ID, URL, MESSAGE_ID from MESSAGE_ATTACHMENT_HISTORY where ID = '{attachmentID}'")
+                        if len(result) > 0:
+                            attachmentLocalID = result[0]['RECORD_ID']
+                            originalMessageID = result[0]['MESSAGE_ID']
+                        else:
+                            attachmentLocalID = None
+                            originalMessageID = None
 
-                    addLog(f'User {user} blacklisting attachment {attachmentID} in guild {reaction.message.guild.id}', inspect.currentframe().f_code.co_name, '', server = reaction.message.guild.name, serverID = reaction.message.guild.id, channel = reaction.message.channel.name, channelID = reaction.message.channel.id, invokedUser = user.name, invokedUserID = user.id, invokedUserDiscriminator = user.discriminator, invokedUserDisplayName = user.nick, messageID = reaction.message.id)
-                
-                    #here add it to the blacklist table
-                    con = openConnection()
-                    cur = con.cursor()
-                    data = [datetime.now(), reaction.message.guild.id, user.id, user.name, user.discriminator, reaction.message.id, attachmentID, attachmentLocalID, attachmentURL, originalMessageID]
-                    cur.execute('insert into RANDOM_ATTACHMENT_BLACKLIST (RECORD_TIMESTAMP, GUILD_ID, BLACKLISTER_ID, BLACKLISTER_NAME, BLACKLISTER_DISCRIMINATOR, RANDOM_ATTACHMENT_MESSAGE_ID, ATTACHMENT_ID, ATTACHMENT_LOCAL_ID, ATTACHMENT_URL, ORIGINAL_MESSAGE_ID) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', data)
-                    con.commit()
-                    closeConnection(con)
+                        #build full blacklister string
+                        blacklisters = ''
+                        userList = await reaction.users().flatten()
+                        for i in userList:
+                            blacklisters = blacklisters + ', ' + str(i.id)
+
+                        addLog(f'User {user} blacklisting attachment {attachmentID} in guild {reaction.message.guild.id}', inspect.currentframe().f_code.co_name, '', server = reaction.message.guild.name, serverID = reaction.message.guild.id, channel = reaction.message.channel.name, channelID = reaction.message.channel.id, invokedUser = user.name, invokedUserID = user.id, invokedUserDiscriminator = user.discriminator, invokedUserDisplayName = user.nick, messageID = reaction.message.id)
+                    
+                        #here add it to the blacklist table
+                        #check if it already exists first
+                        
+                        existingRecord = select(f"select RECORD_ID from RANDOM_ATTACHMENT_BLACKLIST where ATTACHMENT_ID = '{attachmentID}'")
+
+                        con = openConnection()
+                        cur = con.cursor()
+
+                        #still need to do something if this a new instance of the same attachment
+                        if (len(existingRecord) > 0):
+                            cur.execute(f"update RANDOM_ATTACHMENT_BLACKLIST set ALL_BLACKLISTERS = '{blacklisters}' where RECORD_ID = {existingRecord[0]['RECORD_ID']}")
+                        else:
+                            data = [datetime.now(), reaction.message.guild.id, user.id, user.name, user.discriminator, reaction.message.id, attachmentID, attachmentLocalID, attachmentURL, originalMessageID, blacklisters]
+                            cur.execute('insert into RANDOM_ATTACHMENT_BLACKLIST (RECORD_TIMESTAMP, GUILD_ID, BLACKLISTER_ID, BLACKLISTER_NAME, BLACKLISTER_DISCRIMINATOR, RANDOM_ATTACHMENT_MESSAGE_ID, ATTACHMENT_ID, ATTACHMENT_LOCAL_ID, ATTACHMENT_URL, ORIGINAL_MESSAGE_ID, ALL_BLACKLISTERS) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', data)
+                        
+                        con.commit()
+                        closeConnection(con)
+
+                        await reaction.message.add_reaction("\u2705")
 
 #load commands
 commands = []
