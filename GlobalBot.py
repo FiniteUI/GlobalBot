@@ -1196,7 +1196,7 @@ async def on_reaction_add(reaction, user):
             #check if this was a random attachment message
             if "Courtesy of" in reaction.message.content and "https://cdn.discordapp.com/attachments" in reaction.message.content:
                 #check if we have 3 or more votes
-                if reaction.count >= 3:
+                if reaction.count >= 2:
                     #first get some extra info. Need the attachment ID and original message ID
                     #url is https://cdn.discordapp.com/attachments/***CHANNEL-ID***/***ATTACHMENT-ID***/***ATTACHMENT_NAME***
                     extractor = URLExtract()
