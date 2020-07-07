@@ -672,14 +672,15 @@ async def update(message, trigger):
 async def refresh(message = None, trigger = None, silent = False):
     if not silent:
         #await sendMessage(message, "Starting Global Refresh...", textToSpeech = False, deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
+        startTime = time.time()
         await sendMessage(message, "Starting Global Refresh...", textToSpeech = False, triggeredCommand = trigger, codeBlock = True)
     if len(client.guilds) > 0:
         for guild in client.guilds:
             await backup(trigger = 'refresh', silent = True, fromMessage = False, overrideGuild = guild)
-        if message == None:
-            await restart(trigger = 'refresh', silent = True, fromMessage = False)
-        else:
-            await restart(message, trigger = 'refresh', fromMessage = False)
+        await restart(message, trigger = 'refresh', silent = silent, fromMessage = False)
+    if not silent:
+        totaltime = time.time() - startTime
+        await sendMessage(message, f"Global Refresh finished in {totaltime} seconds.", textToSpeech = False, triggeredCommand = trigger, codeBlock = True)
 
 #add the regresh into the main event loop
 def callRefresh():
