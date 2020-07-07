@@ -1218,7 +1218,10 @@ async def on_reaction_add(reaction, user):
                         blacklisters = ''
                         userList = await reaction.users().flatten()
                         for i in userList:
-                            blacklisters = blacklisters + ', ' + str(i.id)
+                            if blacklisters == '':
+                                blacklisters = str(i.id)
+                            else:
+                                blacklisters = blacklisters + ', ' + str(i.id)
 
                         addLog(f'User {user} blacklisting attachment {attachmentID} in guild {reaction.message.guild.id}', inspect.currentframe().f_code.co_name, '', server = reaction.message.guild.name, serverID = reaction.message.guild.id, channel = reaction.message.channel.name, channelID = reaction.message.channel.id, invokedUser = user.name, invokedUserID = user.id, invokedUserDiscriminator = user.discriminator, invokedUserDisplayName = user.nick, messageID = reaction.message.id)
                     
