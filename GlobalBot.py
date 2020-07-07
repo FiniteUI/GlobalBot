@@ -677,10 +677,10 @@ async def refresh(message = None, trigger = None, silent = False):
     if len(client.guilds) > 0:
         for guild in client.guilds:
             await backup(trigger = 'refresh', silent = True, fromMessage = False, overrideGuild = guild)
-        await restart(message, trigger = 'refresh', silent = silent, fromMessage = False)
     if not silent:
         totaltime = time.time() - startTime
         await sendMessage(message, f"Global Refresh finished in {totaltime} seconds.", textToSpeech = False, triggeredCommand = trigger, codeBlock = True)
+    await restart(message, trigger = 'refresh', silent = silent, fromMessage = False)
 
 #add the regresh into the main event loop
 def callRefresh():
