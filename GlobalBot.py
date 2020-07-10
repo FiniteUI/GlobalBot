@@ -23,6 +23,10 @@ import zipfile
 import zlib
 import matplotlib
 import matplotlib.pyplot
+import smtplib
+import ssl
+from email.message import EmailMessage
+import mimetypes
 
 #command class
 class command:
@@ -680,6 +684,7 @@ async def refresh(message = None, trigger = None, silent = False):
     if not silent:
         totaltime = time.time() - startTime
         await sendMessage(message, f"Global Refresh finished in {totaltime} seconds.", textToSpeech = False, triggeredCommand = trigger, codeBlock = True)
+    emailSummary()
     await restart(message, trigger = 'refresh', silent = silent, fromMessage = False)
 
 #add the regresh into the main event loop
@@ -1080,12 +1085,59 @@ def saveTTS(message):
     con.commit()
     closeConnection(con)
 
+#email myself a summary
+def emailSummary():
+    port = 465
+    context = ssl.create_default_context()
+    
+    centralTimestamp = convertUTCToTimezone(datetime.now(), 'US/Central')
+
+    message = EmailMessage()
+    message['Subject'] = f'GlobalBot Summary {centralTimestamp}'
+    message['From'] = botEmailAddress
+    message['To'] = developerEmailAddress
+    message.set_content("The summary file is attached.")
+
+    directory = os.getcwd()
+    directory = os.path.join(directory, 'Daily Summary')
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
+    
+    timeStamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
+    fileName = f'GlobalBotDailySummary-{timeStamp}.csv'
+    fullPath = os.path.join(directory, fileName)
+
+    results = select(f"select * from BOT_LOG where LOG_TIME >= date('now', '-1 day')")
+
+    with open(fullPath, 'wt+', encoding = 'utf-16', newline = '') as tempFile:
+        writer = csv.writer(tempFile, quoting = csv.QUOTE_ALL)
+        writer.writerow(['LOG_ID', 'LOG_TIME', 'MESSAGE', 'SERVER', 'SERVER_ID', 'CHANNEL', 'CHANNEL_ID', 'INVOKED_USER', 'INVOKED_USER_ID', 'INVOKED_USER_DISCRIMINATOR', 'INVOKED_USER_DISPLAY_NAME', 'COMMAND', 'ARGUMENTS', 'FUNCTION', 'TARGET_USER', 'TARGET_USER_ID', 'TARGER_USER_DISCRIMINATOR', 'TARGET_USER_DISPLAY_NAME', 'MESSAGE_ID', 'DATA_1', 'DATA_2', 'DATA_3', 'DATA_4', 'DATA_5'])
+        writer.writerows(results)
+
+    with open(fullPath, 'rb') as openFile:
+        contents = openFile.read()
+        ctype, encoding = mimetypes.guess_type(fullPath)
+        if ctype is None or encoding is not None:
+            # No guess could be made, or the file is encoded (compressed), so
+            # use a generic bag-of-bits type.
+            ctype = 'application/octet-stream'
+        maintype, subtype = ctype.split('/', 1)
+        message.add_attachment(contents, maintype = maintype, subtype = subtype, filename = fileName)
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
+        server.login(botEmailAddress, botEmailToken)
+        server.send_message(message)
+        server.quit()
+
 #load client
 load_dotenv('.env')
 token = os.getenv('DISCORD_TOKEN')
 database = os.getenv('GLOBALBOT_DATABASE')
 finiteui = os.getenv('DISCORD_ID')
 githubToken = os.getenv('GITHUB_TOKEN')
+botEmailAddress = os.getenv('BOT_EMAIL_ADDRESS')
+botEmailToken = os.getenv('BOT_EMAIL_TOKEN')
+developerEmailAddress = os.getenv('DEVELOPER_EMAIL_ADDRESS')
 testServer = int(os.getenv('DISCORD_TEST_SERVER_ID'))
 loop = ''
 launchDate = date.today()
