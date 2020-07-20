@@ -193,7 +193,8 @@ async def help(message, trigger):
     s = filter(filterStandardFunctions, commands)
     for i in s:
         x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.description}\n'''
-    await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
+    #await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
+    await sendMessage(message, x, triggeredCommand = trigger)
 
 #lists available user commands
 async def listUserCommands(message, trigger):
@@ -209,7 +210,8 @@ async def listUserCommands(message, trigger):
             for url in urls:
                 description = description.replace(url, f'<{url}>')
             x = x + f'''**!{i.trigger.ljust(20)}** - \t{description}\n'''
-    await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
+    #await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
+    await sendMessage(message, x, triggeredCommand = trigger)
 
 #restart the bot
 async def restart(message = None, trigger = None, silent = False, fromMessage = True):
@@ -574,7 +576,8 @@ async def listAdminCommands(message, trigger):
     s = filter(filterAdminFunctions, commands)
     for i in s:
         x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.description}\n'''
-    await sendMessage(message, x, deleteAfter = 20, triggeredCommand = trigger)
+    #await sendMessage(message, x, deleteAfter = 20, triggeredCommand = trigger)
+    await sendMessage(message, x, triggeredCommand = trigger)
 
 #ends the bot program
 async def kill(message, trigger):
