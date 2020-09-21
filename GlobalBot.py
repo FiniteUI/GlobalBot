@@ -1092,7 +1092,8 @@ async def randomtts(message, trigger):
 #sends user command from the server
 async def randomUserCommand(message, trigger):
     #get message list
-    userCommands = filterUserFunctions(filterCommands(commands, message.guild.id))
+    serverCommands = filterCommands(commands, message.guild.id)
+    userCommands = filterUserFunctions(serverCommands)
 
     #grab a random message
     if len(userCommands) > 0:
