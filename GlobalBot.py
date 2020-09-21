@@ -1092,15 +1092,16 @@ async def randomtts(message, trigger):
 #sends user command from the server
 async def randomUserCommand(message, trigger):
     #get message list
-    serverCommands = filterCommands(commands, message.guild.id)
-    userCommands = filterUserFunctions(serverCommands)
+    userCommands = filterCommands(commands, message.guild.id)
+    userCommands = filter(filterUserFunctions, userCommands)
+    userCommands = list(userCommands)
 
     #grab a random message
     if len(userCommands) > 0:
         x = random.randrange(0, len(userCommands), 1)
         randomUserCommand = userCommands[x]
     
-        addLog(f'{message.guild} user {message.author} triggered user command [{x.trigger}] via !ruc.', inspect.currentframe().f_code.co_name, randomUserCommand.trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, arguments = str(randomUserCommand.arguments), invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+        addLog(f'{message.guild} user {message.author} triggered user command [{randomUserCommand.trigger}] via !ruc.', inspect.currentframe().f_code.co_name, randomUserCommand.trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, arguments = str(randomUserCommand.arguments), invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
         async with message.channel.typing():
             await randomUserCommand.run(message)
 
