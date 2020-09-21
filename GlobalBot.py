@@ -1313,6 +1313,8 @@ async def on_reaction_add(reaction, user):
                         closeConnection(con)
 
                         await reaction.message.add_reaction("\u2705")
+
+                        #delete message
                         await reaction.message.delete(delay = 2)
 
 #load commands
