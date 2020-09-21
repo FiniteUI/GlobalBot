@@ -1103,6 +1103,7 @@ async def randomUserCommand(message, trigger):
     
         addLog(f'{message.guild} user {message.author} triggered user command [{randomUserCommand.trigger}] via !ruc.', inspect.currentframe().f_code.co_name, randomUserCommand.trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, arguments = str(randomUserCommand.arguments), invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
         async with message.channel.typing():
+            await sendMessage(message, f'Triggering random user command [{randomUserCommand.trigger}]', triggeredCommand = trigger, codeBlock = True)
             await randomUserCommand.run(message)
 
 #save tts message ids to TTS_LOG
