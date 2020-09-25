@@ -54,9 +54,12 @@ class command:
         self.hidden = hidden
         self.server = int(server)
 
-    async def run(self, message):
+    async def run(self, message, includeCommand = False):
         if self.userCommand:
-            await globals()[self.function](message, *self.arguments, triggeredCommand = self.trigger)
+            tempArguments = self.arguments
+            if includeCommand:
+                tempArguments[0] = f'**{self.trigger}**: {tempArguments[0]}'
+            await globals()[self.function](message, *tempArguments, triggeredCommand = self.trigger)
         else:
             await globals()[self.function](message, trigger = self.trigger)
             
@@ -1103,8 +1106,8 @@ async def randomUserCommand(message, trigger):
     
         addLog(f'{message.guild} user {message.author} triggered user command [{randomUserCommand.trigger}] via !ruc.', inspect.currentframe().f_code.co_name, randomUserCommand.trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, arguments = str(randomUserCommand.arguments), invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
         async with message.channel.typing():
-            await sendMessage(message, f'Triggering random user command [{randomUserCommand.trigger}]', triggeredCommand = trigger, codeBlock = True)
-            await randomUserCommand.run(message)
+            #await sendMessage(message, f'Triggering random user command [{randomUserCommand.trigger}]', triggeredCommand = trigger, codeBlock = True)
+            await randomUserCommand.run(message, includeCommand = True)
 
 #save tts message ids to TTS_LOG
 def saveTTS(message):
@@ -1159,6 +1162,47 @@ def emailSummary():
         server.send_message(message)
         server.quit()
 
+#disconnects from the given voice client
+async def leaveVoice(voiceChannel, trigger):
+    addLog(f'Bot leaving {voiceChannel.guild.id} voice channel {voiceChannel.channel.id}', inspect.currentframe().f_code.co_name, trigger, server = voiceChannel.guild.name, serverID = voiceChannel.guild.id)
+    await voiceChannel.disconnect()
+
+#kicks the bot out of the voice channel
+async def leave(message, trigger):
+    if message.guild.voice_client != None:
+        if message.author.voice.channel.id == message.guild.voice_client.channel.id:
+            addLog(f'Leaving {message.guild.id} voice channel {message.author.voice.channel.id} for user {message.author.id}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+            await leaveVoice(message.guild.voice_client, trigger)
+        else:
+            await sendMessage(message, f'You cannot kick the bot from a voice channel you are not in.', triggeredCommand = trigger, codeBlock = True, deleteAfter = 10)
+    else:
+        await sendMessage(message, f'The bot is not connected to voice.', triggeredCommand = trigger, codeBlock = True, deleteAfter = 10)
+
+#joins the specified voice channel
+async def joinVoice(voiceChannel, trigger):
+    addLog(f'Bot joining {voiceChannel.guild.id} voice channel {voiceChannel.id}', inspect.currentframe().f_code.co_name, trigger, server = voiceChannel.guild.name, serverID = voiceChannel.guild.id)
+    await voiceChannel.connect()
+
+#joins the voice channel the author is in
+async def join(message, trigger):
+    join = False
+    if message.author.voice.channel != None:
+        if message.guild.voice_client != None:
+            if message.guild.voice_client.channel.id != message.author.voice.channel.id:
+                await leaveVoice(message.guild.voice_client, trigger)
+                join = True
+            else:
+                await sendMessage(message, f'The bot is already in this voice channel.', triggeredCommand = trigger, codeBlock = True, deleteAfter = 10)
+        else:
+            join = True
+
+        if join:
+            #need to add voice channel to logging
+            addLog(f'Joining {message.guild.id} voice channel {message.author.voice.channel.id} for user {message.author.id}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
+            await joinVoice(message.author.voice.channel, trigger)
+    else:
+        await sendMessage(message, f'You cannot make the bot join a voice channel you are not in.', triggeredCommand = trigger, codeBlock = True, deleteAfter = 10)
+
 #load client
 load_dotenv('.env')
 token = os.getenv('DISCORD_TOKEN')
@@ -1174,6 +1218,7 @@ launchDate = date.today()
 refreshInterval = 300
 launchTime = datetime.now()
 testMode = checkTestMode()
+players = {}
 
 client = discord.Client()
 
@@ -1365,6 +1410,8 @@ commands.append(command('guilds', 'Displays a list of guilds the bot is connecte
 commands.append(command('voicestats', 'Displays voice stats for the specified user. Optionally a user can be specified. Format: !voicestats @user', 'voiceStats'))
 commands.append(command('rtts', 'Sends a random tts message from the server.', 'randomtts'))
 commands.append(command('ruc', 'Triggers a random user command from the server.', 'randomUserCommand'))
+commands.append(command('join', "Makes the bot join the user's current voice channel.", admin = True))
+commands.append(command('leave', "Makes the bot leave voice in this server.", admin = True))
 loadUserCommands()
 
 #launch the refresh timer
