@@ -56,7 +56,7 @@ class command:
 
     async def run(self, message, includeCommand = False):
         if self.userCommand:
-            tempArguments = self.arguments
+            tempArguments = self.arguments[:]
             if includeCommand:
                 tempArguments[0] = f'**{self.trigger}**: {tempArguments[0]}'
             await globals()[self.function](message, *tempArguments, triggeredCommand = self.trigger)
