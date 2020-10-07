@@ -616,33 +616,61 @@ async def randomAttachment(message, trigger):
     filter = ''
     if user != []:
         filter = f' and author_id = {user[0].id}'
+        targetUser = user[0].name
+        targetUserID = user[0].id
+        targetUserDisplayName = user[0].nick
+        targetUserDiscriminator = user[0].discriminator
+    else:
+        targetUser = None
+        targetUserID = None
+        targetUserDisplayName = None
+        targetUserDiscriminator = None
     
-    attachments = select(f"select author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id}{filter} and message_attachment_history.id not in (select ATTACHMENT_ID from RANDOM_ATTACHMENT_BLACKLIST where GUILD_ID = {message.guild.id})")
-    index = random.randrange(0, len(attachments), 1)
-    attachment = attachments[index][1]
-    author = client.get_user(attachments[index][0])
+    attachments = select(f"select message_attachment_history.id, author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id}{filter} and message_attachment_history.id not in (select ATTACHMENT_ID from RANDOM_ATTACHMENT_BLACKLIST where GUILD_ID = {message.guild.id})", trigger = trigger)
+    if len(attachments) > 0:
+        index = random.randrange(0, len(attachments), 1)
+        attachment = attachments[index][2]
+        author = client.get_user(attachments[index][1])
 
-    utc_timestamp = datetime.strptime(attachments[index][2], '%Y-%m-%d %H:%M:%S.%f')
-    central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
-    central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+        utc_timestamp = datetime.strptime(attachments[index][3], '%Y-%m-%d %H:%M:%S.%f')
+        central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
+        central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
-    await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{attachment}', triggeredCommand = trigger)
+        addLog(f'Sending random attachment', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = attachments[index][0])
+        await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{attachment}', triggeredCommand = trigger)
 
 #sends a random youtube video from chat
 async def randomVideo(message, trigger):
-    videos = select(f"select distinct author_id, created_at, content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663' and GUILD_ID = {message.guild.id}")
-    index = random.randrange(0, len(videos), 1)
-    video = videos[index][2]
-    extractor = URLExtract()
-    urls = extractor.find_urls(video)
+    user = message.mentions
+    filter = ''
+    if user != []:
+        filter = f' and author_id = {user[0].id}'
+        targetUser = user[0].name
+        targetUserID = user[0].id
+        targetUserDisplayName = user[0].nick
+        targetUserDiscriminator = user[0].discriminator
+    else:
+        targetUser = None
+        targetUserID = None
+        targetUserDisplayName = None
+        targetUserDiscriminator = None
 
-    utc_timestamp = datetime.strptime(videos[index][1], '%Y-%m-%d %H:%M:%S.%f')
-    central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
-    central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+    videos = select(f"select distinct id, author_id, created_at, content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663' and GUILD_ID = {message.guild.id}{filter}", trigger = trigger)
 
-    author = client.get_user(videos[index][0])
+    if len(videos) > 0:
+        index = random.randrange(0, len(videos), 1)
+        video = videos[index][3]
+        extractor = URLExtract()
+        urls = extractor.find_urls(video)
 
-    await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{urls[0]}', triggeredCommand = trigger)
+        utc_timestamp = datetime.strptime(videos[index][2], '%Y-%m-%d %H:%M:%S.%f')
+        central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
+        central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+
+        author = client.get_user(videos[index][1])
+
+        addLog(f'Sending random attachment', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = videos[index][0])
+        await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{urls[0]}', triggeredCommand = trigger)
 
 #Moves a user into a specified voice channel
 async def move(message, trigger):
@@ -736,17 +764,18 @@ async def randomMessage(message, trigger):
         targetUserDisplayName = None
         targetUserDiscriminator = None
 
-    messages = select(f"select distinct id from MESSAGE_HISTORY where content <> '' and guild_id = {message.guild.id} and channel_id = {message.channel.id}{filter}")
-    x = random.randrange(0, len(messages), 1)
-    randomMessage = messages[x][0]
-    randomMessage = await message.channel.fetch_message(randomMessage)
+    messages = select(f"select distinct id from MESSAGE_HISTORY where content <> '' and guild_id = {message.guild.id} and channel_id = {message.channel.id}{filter}", trigger)
+    if len(messages) > 0:
+        x = random.randrange(0, len(messages), 1)
+        randomMessage = messages[x][0]
+        randomMessage = await message.channel.fetch_message(randomMessage)
 
-    central_timestamp = convertUTCToTimezone(randomMessage.created_at, 'US/Central')
-    central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+        central_timestamp = convertUTCToTimezone(randomMessage.created_at, 'US/Central')
+        central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
-    text = f'On {central_timestamp}, {randomMessage.author.mention} said:\nLink: {randomMessage.jump_url}\n>>> {randomMessage.content}'
-    addLog(f'Sending random message', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator)
-    await sendMessage(message, text, triggeredCommand = trigger)
+        text = f'On {central_timestamp}, {randomMessage.author.mention} said:\nLink: {randomMessage.jump_url}\n>>> {randomMessage.content}'
+        addLog(f'Sending random message', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = messages[x][0])
+        await sendMessage(message, text, triggeredCommand = trigger)
 
 #check if the test.txt file exists
 def checkTestMode():
@@ -773,8 +802,8 @@ async def getBackup(message, trigger):
         os.makedirs(directory)
     
     #now grab the data
-    channels = select(f'select distinct channel_id from message_history where guild_id = {message.guild.id}')
-    messages = select(f'select created_at, channel_id, channel, author_name, author_discriminator, author_display_name, clean_content, jump_url, tts, pinned, url from message_history left join message_attachment_history on message_history.id = message_attachment_history.message_id where message_history.guild_id = {message.guild.id} order by channel_id, created_at')
+    channels = select(f'select distinct channel_id from message_history where guild_id = {message.guild.id}', trigger)
+    messages = select(f'select created_at, channel_id, channel, author_name, author_discriminator, author_display_name, clean_content, jump_url, tts, pinned, url from message_history left join message_attachment_history on message_history.id = message_attachment_history.message_id where message_history.guild_id = {message.guild.id} order by channel_id, created_at', trigger)
 
     #now create the files
     files = []
@@ -832,7 +861,7 @@ async def voiceStats(message, trigger):
         channel = None
         channels = {}
         last = None
-        voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {message.guild.id} and USER_ID = {user.id} order by RECORD_TIMESTAMP')
+        voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {message.guild.id} and USER_ID = {user.id} order by RECORD_TIMESTAMP', trigger)
         for i in voiceLogs:
             if i['EVENT'] == 'JOIN_VOICE':
                 lastJoin = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
@@ -1097,7 +1126,7 @@ async def randomtts(message, trigger):
         targetUserDiscriminator = None
 
     #grab a random message
-    messages = select(f"select distinct id from TTS_LOG A inner join MESSAGE_HISTORY B on A.MESSAGE_ID = B.ID where content <> '' and guild_id = {message.guild.id} and AUTHOR_ID <> {client.user.id}{filter}")
+    messages = select(f"select distinct id from TTS_LOG A inner join MESSAGE_HISTORY B on A.MESSAGE_ID = B.ID where content <> '' and guild_id = {message.guild.id} and AUTHOR_ID <> {client.user.id}{filter}", trigger)
     if len(messages) > 0:
         x = random.randrange(0, len(messages), 1)
         randomMessage = messages[x][0]
