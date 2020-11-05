@@ -1267,22 +1267,28 @@ async def roll(message, trigger):
 
     if len(parameters) <= 2:
         if len(parameters) > 1:
-            if float(parameters[1]).is_integer():
-                dice = int(parameters[1])
-                if dice > 100:
-                    failed = True
-                    failMessage = "Woah there... let's not break the server. Keep it under 100 dice buddy."
-                elif dice == 0:
-                    failMessage = "Rolling 0 dice doesn't make much sense."
+            if parameters[1].isnumeric():
+                if float(parameters[1]).is_integer():
+                    dice = int(parameters[1])
+                    if dice > 100:
+                        failed = True
+                        failMessage = "Woah there... let's not break the server. Keep it under 100 dice buddy."
+                    elif dice == 0:
+                        failMessage = "Rolling 0 dice doesn't make much sense."
+                        failed = True
+                else:
                     failed = True
             else:
                 failed = True
 
         if len(parameters) > 0:
-            if float(parameters[0]).is_integer():
-                sides = int(parameters[0])
-                if sides == 0:
-                    failMessage = "Rolling a 0 sided dice doesn't make much sense."
+            if parameters[0].isnumeric():
+                if float(parameters[0]).is_integer():
+                    sides = int(parameters[0])
+                    if sides == 0:
+                        failMessage = "Rolling a 0 sided dice doesn't make much sense."
+                        failed = True
+                else:
                     failed = True
             else:
                 failed = True
@@ -1290,7 +1296,7 @@ async def roll(message, trigger):
         failed = True
 
     if failed:
-        await sendMessage(message, failMessage, triggeredCommand = trigger, deleteAfter = 10)
+        await sendMessage(message, failMessage, triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
     else:
         rolls = []
         for x in range(0, dice):
