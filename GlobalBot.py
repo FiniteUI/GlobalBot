@@ -1255,6 +1255,61 @@ async def join(message, trigger):
     else:
         await sendMessage(message, f'You cannot make the bot join a voice channel if you are not connected to voice.', triggeredCommand = trigger, codeBlock = True, deleteAfter = 10)
 
+#roll a dice with sides and number of dice specified by the user, default is 1 six sided die
+async def roll(message, trigger):
+    failed = False
+    sides = 6
+    dice = 1
+    failMessage = 'Invalid arguments. Correct format is !roll optional-number-of-sides optional-number-of-dice'
+
+    parameters = removeCommand(message.content, f'!{trigger}')
+    parameters = parameters.split()
+
+    if len(parameters) <= 2:
+        if len(parameters) > 1:
+            if float(parameters[1]).is_integer():
+                dice = int(parameters[1])
+                if dice > 100:
+                    failed = True
+                    failMessage = "Woah there... let's not break the server. Keep it under 100 dice buddy."
+                elif dice == 0:
+                    failMessage = "Rolling 0 dice doesn't make much sense."
+                    failed = True
+            else:
+                failed = True
+
+        if len(parameters) > 0:
+            if float(parameters[0]).is_integer():
+                sides = int(parameters[0])
+                if sides == 0:
+                    failMessage = "Rolling a 0 sided dice doesn't make much sense."
+                    failed = True
+            else:
+                failed = True
+    else:
+        failed = True
+
+    if failed:
+        await sendMessage(message, failMessage, triggeredCommand = trigger, deleteAfter = 10)
+    else:
+        rolls = []
+        for x in range(0, dice):
+            rolls.append(random.randrange(1, sides + 1))
+        
+        quip = ''
+        if sides == 1:
+            quip = " Isn't that just a marble?"
+        elif sides == 2:
+            quip = ' Why not use a coin?'
+
+        results = f'Rolling {dice} {sides} sided dice...{quip}\n'
+        for x in range(0, dice):
+            results = results + f'*Dice {x + 1} result: {rolls[x]}*\n'
+        if dice > 1:
+            results = results + f'**Total: {sum(rolls)}**'
+        
+        await sendMessage(message, results, triggeredCommand = trigger)
+
 #load client
 load_dotenv('.env')
 token = os.getenv('DISCORD_TOKEN')
@@ -1464,6 +1519,7 @@ commands.append(command('rtts', 'Sends a random tts message from the server.', '
 commands.append(command('ruc', 'Triggers a random user command from the server.', 'randomUserCommand'))
 commands.append(command('join', "Makes the bot join the user's current voice channel.", admin = True))
 commands.append(command('leave', "Makes the bot leave voice in this server.", admin = True))
+commands.append(command('roll', 'Rolls dice. Format: !roll optional-number-of-sides optional-number-of-dice'))
 loadUserCommands()
 
 #launch the refresh timer
