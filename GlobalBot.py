@@ -38,8 +38,11 @@ class command:
     admin = False
     hidden = False
     server = -1
+    format = ''
+    parameters = ''
+    fullDescription = ''
 
-    def __init__(self, trigger, description, function = '', userCommand = False, arguments = '', admin = False, hidden = False, server = -1):
+    def __init__(self, trigger, description, function = '', userCommand = False, arguments = '', admin = False, hidden = False, server = -1, parameters = ''):
         self.trigger = trigger
         self.description = description
         
@@ -53,6 +56,14 @@ class command:
         self.admin = admin
         self.hidden = hidden
         self.server = int(server)
+        self.parameters = parameters
+
+        self.format = f'!{self.trigger} {self.parameters}'.strip()
+
+        if self.parameters != '':
+            self.fullDescription = f'{self.description} Format: {self.format}'
+        else:
+            self.fullDescription = self.description
 
     async def run(self, message, includeCommand = False):
         if self.userCommand:
@@ -172,7 +183,7 @@ async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteA
 
 #sends a message to the channel
 async def sendChannelMessage(message, channelID, triggerMessage, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None, triggeredCommand = None, codeBlock = False, attachment = None):
-    sendChannel = client.get_channel(channelID)
+    sendChannel = client.get_channel(int(channelID))
     addLog(f'''Sending message "{message}" to channel {sendChannel.name} in server {sendChannel.guild}, {sendChannel.guild.id}.''', inspect.currentframe().f_code.co_name, server = sendChannel.guild.name, serverID = sendChannel.guild.id, channel = sendChannel.name, channelID = sendChannel.id, command = triggeredCommand)
 
     #message limit is 2000 characters, we may add 2 if codeBlock, so our limit is 1998
@@ -195,8 +206,7 @@ async def help(message, trigger):
     x = ''
     s = filter(filterStandardFunctions, commands)
     for i in s:
-        x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.description}\n'''
-    #await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
+        x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.fullDescription}\n'''
     await sendMessage(message, x, triggeredCommand = trigger)
 
 #lists available user commands
@@ -208,12 +218,11 @@ async def listUserCommands(message, trigger):
     extractor = URLExtract()
     for i in s:
         if i.server == message.guild.id:
-            description = i.description
+            description = i.fullDescription
             urls = extractor.find_urls(i.description)
             for url in urls:
                 description = description.replace(url, f'<{url}>')
             x = x + f'''**!{i.trigger.ljust(20)}** - \t{description}\n'''
-    #await sendMessage(message, x, deleteAfter = 30, triggeredCommand = trigger)
     await sendMessage(message, x, triggeredCommand = trigger)
 
 #restart the bot
@@ -224,11 +233,7 @@ async def restart(message = None, trigger = None, silent = False, fromMessage = 
         addLog(f'Restarting bot', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
     
     if not silent:
-        #await sendMessage(message, 'Restarting bot...',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
         await sendMessage(message, 'Restarting bot...', triggeredCommand = trigger, codeBlock = True)
-    
-    #wait for message cleanup
-    #await asyncio.sleep(30)
 
     os.execlp('python', '-m', 'C:/GlobalBot/GlobalBot.py')
 
@@ -259,12 +264,11 @@ async def addUserCommand(message, trigger):
                 tts = False
                 z = ''
             commands.append(command(newTrigger, f'''Sends the {z}message "{messageToSend}"''', 'sendMessage', True, [messageToSend, tts], server = message.guild.id))
-            #await sendMessage(message, f'Adding user command [{newTrigger}]',  deleteAfter = 20, triggeredCommand = newTrigger, codeBlock = True)
             await sendMessage(message, f'Adding user command [{newTrigger}]', triggeredCommand = newTrigger, codeBlock = True)
             saveUserCommand(message, newTrigger, messageToSend, tts)
             addLog(f'Adding user command [{newTrigger}]', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, target = newTrigger)
     else:
-        await sendMessage(message, 'Invalid parameters. Format is !addmessagecommand command, message',  deleteAfter = 20, triggeredCommand = trigger)
+        await sendMessage(message, 'Invalid parameters. Format is !addusercommand command, message',  deleteAfter = 20, triggeredCommand = trigger)
 
 #filters command list to only user functions
 def filterUserFunctions(command):
@@ -306,7 +310,6 @@ async def deleteUserCommand(message, trigger):
             del y
             deleteUserCommandFromDatabase(message.guild.id, x.lower())
             addLog(f'Deleting user command [{x}] from server {message.guild.name}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, target = x.lower())
-            #await sendMessage(message, f'Deleting user command [{x}]',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
             await sendMessage(message, f'Deleting user command [{x}]', triggeredCommand = trigger, codeBlock = True)
             return
     await sendMessage(message, f'Command [{x}] not found',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
@@ -334,7 +337,6 @@ async def kickUser(message, trigger):
             else:
                 addLog(f'Kicking user {x.display_name} from voice', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, targetUser = x.name, targetUserID = x.id, targetUserDiscriminator = x.discriminator, targetUserDisplayName = x.display_name, messageID = message.id)
                 await x.move_to(None)
-                #await sendMessage(message, f'Kicking user {x.display_name} from voice', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
                 await sendMessage(message, f'Kicking user {x.display_name} from voice', triggeredCommand = trigger, codeBlock = True)
 
 #kicks a random user out of voice chat
@@ -346,7 +348,6 @@ async def roulette(message, trigger):
             x.append(j)
     if len(x) > 0:
         userIndex = random.randrange(0, len(x), 1)
-        #await sendMessage(message, f'Kicking user {x[userIndex].display_name} from voice', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
         await sendMessage(message, f'Kicking user {x[userIndex].display_name} from voice', triggeredCommand = trigger, codeBlock = True)
         addLog(f'Kicking user {x[userIndex].display_name} from voice', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, targetUser = x[userIndex].name, targetUserID = x[userIndex].id, targetUserDiscriminator = x[userIndex].discriminator, targetUserDisplayName = x[userIndex].display_name, messageID = message.id)
         await x[userIndex].move_to(None)  
@@ -372,7 +373,6 @@ async def setName(message, trigger):
     if len(y) > 32:
         await sendMessage(message, f'Display names must be 32 characters or less.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
     else:
-        #await sendMessage(message, f'Setting display name to "{y}"', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
         await sendMessage(message, f'Setting display name to "{y}"', triggeredCommand = trigger, codeBlock = True)
         addLog(f'Setting display name to "{y}"', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, target = y)
         member = message.guild.get_member(client.user.id)
@@ -394,7 +394,6 @@ async def demote(message, trigger):
                 else:
                     addLog(f'Moving user {x.display_name} to Tier 1 voice channel.', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, targetUser = x.name, targetUserID = x.id, targetUserDiscriminator = x.discriminator, targetUserDisplayName = x.display_name, messageID = message.id)
                     await x.move_to(tier1)
-                    #await sendMessage(message, f'Demoting user {x.display_name} to Tier 1.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
                     await sendMessage(message, f'Demoting user {x.display_name} to Tier 1.', triggeredCommand = trigger, codeBlock = True)
 
 #gets a channel by name
@@ -434,7 +433,6 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
 
     addLog(f'Backing up server {guild.name}...', inspect.currentframe().f_code.co_name, trigger, server = guild.name, serverID = guild.id, channel = channelName, channelID = channelID, invokedUser = invokedUser.name, invokedUserID = invokedUser.id, invokedUserDiscriminator = invokedUser.discriminator, invokedUserDisplayName = displayName, messageID = messageID, target = guild.id)
     if not silent:
-        #await sendMessage(message, f'Backing up server {guild.name}...', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
         await sendMessage(message, f'Backing up server {guild.name}...', triggeredCommand = trigger, codeBlock = True)
     startTime = time.time()
     top = grabTopStoredMesage(guild, trigger)
@@ -562,7 +560,6 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
 #clears the backup of this server
 async def clearBackup(message, trigger):
     addLog(f'Deleting backup for server {message.guild.id}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, target = message.guild.id)
-    #await sendMessage(message, f'Deleting backup for server {message.guild.name}', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
     await sendMessage(message, f'Deleting backup for server {message.guild.name}', triggeredCommand = trigger, codeBlock = True)
     con = openConnection()
     cur = con.cursor()
@@ -578,14 +575,12 @@ async def listAdminCommands(message, trigger):
     x = ''
     s = filter(filterAdminFunctions, commands)
     for i in s:
-        x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.description}\n'''
-    #await sendMessage(message, x, deleteAfter = 20, triggeredCommand = trigger)
+        x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.fullDescription}\n'''
     await sendMessage(message, x, triggeredCommand = trigger)
 
 #ends the bot program
 async def kill(message, trigger):
     addLog(f'Killing bot process...', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-    #await sendMessage(message, 'Killing bot process...',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
     await sendMessage(message, 'Killing bot process...', triggeredCommand = trigger, codeBlock = True)
     await asyncio.sleep(30)
     sys.stdout.flush()
@@ -690,13 +685,10 @@ async def move(message, trigger):
                 else:
                     addLog(f'Moving user {x.display_name} to {channelName} voice channel.', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, targetUser = x.name, targetUserID = x.id, targetUserDiscriminator = x.discriminator, targetUserDisplayName = x.display_name, messageID = message.id, target = channel.id, voiceChannel = channel.name, voiceChannelID = channel.id)
                     await x.move_to(channel)
-                    #await sendMessage(message, f'Moving user {x.display_name} to voice channel {channelName}.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
                     await sendMessage(message, f'Moving user {x.display_name} to voice channel {channelName}.', triggeredCommand = trigger, codeBlock = True)
 
 #downloads the newest version of the source from github
 async def update(message, trigger):
-
-    #await sendMessage(message, 'Updating bot code...', deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
     await sendMessage(message, 'Updating bot code...', triggeredCommand = trigger, codeBlock = True)
     addLog(f'Updating bot source code...', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)          
 
@@ -714,7 +706,6 @@ async def update(message, trigger):
 #nightly refresh, backup, update, restart
 async def refresh(message = None, trigger = None, silent = False):
     if not silent:
-        #await sendMessage(message, "Starting Global Refresh...", textToSpeech = False, deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
         startTime = time.time()
         await sendMessage(message, "Starting Global Refresh...", textToSpeech = False, triggeredCommand = trigger, codeBlock = True)
     if len(client.guilds) > 0:
@@ -1051,8 +1042,8 @@ async def voiceStats(message, trigger):
         directory = os.path.join(directory, datetime.now().strftime('%Y%m%d%H%M%S%f'))
         matplotlib.pyplot.savefig(directory)
         chart = discord.File(f'{directory}.png')
-        await sendChannelMessage('', 710669506498002954, message, attachment = chart)
-        attachmentChannel = client.get_channel(710669506498002954)
+        await sendChannelMessage('', testServerVoiceChartChannel, message, attachment = chart)
+        attachmentChannel = client.get_channel(testServerVoiceChartChannel)
         attachmentMessage = await attachmentChannel.fetch_message(attachmentChannel.last_message_id)
         
         if len(attachmentMessage.attachments) > 0:
@@ -1108,9 +1099,6 @@ def formatTimeDelta(duration):
 
 #sends tts message from the server
 async def randomtts(message, trigger):
-    #first run the backup to get any new messages
-    #await backup(trigger = trigger, silent = True, fromMessage = False, overrideGuild = message.guild)
-
     user = message.mentions
     filter = ''
     if user != []:
@@ -1154,7 +1142,6 @@ async def randomUserCommand(message, trigger):
     
         addLog(f'{message.guild} user {message.author} triggered user command [{randomUserCommand.trigger}] via !ruc.', inspect.currentframe().f_code.co_name, randomUserCommand.trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, arguments = str(randomUserCommand.arguments), invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, target = randomUserCommand.trigger)
         async with message.channel.typing():
-            #await sendMessage(message, f'Triggering random user command [{randomUserCommand.trigger}]', triggeredCommand = trigger, codeBlock = True)
             await randomUserCommand.run(message, includeCommand = True)
 
 #save tts message ids to TTS_LOG
@@ -1288,6 +1275,9 @@ async def roll(message, trigger):
                     if sides == 0:
                         failMessage = "Rolling a 0 sided dice doesn't make much sense."
                         failed = True
+                    elif sides == 1:
+                        failMessage = "Rolling a 1 sided dice doesn't make much sense."
+                        failed = True
                 else:
                     failed = True
             else:
@@ -1303,9 +1293,7 @@ async def roll(message, trigger):
             rolls.append(random.randrange(1, sides + 1))
         
         quip = ''
-        if sides == 1:
-            quip = " Isn't that just a marble?"
-        elif sides == 2:
+        if sides == 2:
             quip = ' Why not use a coin?'
 
         results = f'Rolling {dice} {sides} sided dice...{quip}\n'
@@ -1315,6 +1303,26 @@ async def roll(message, trigger):
             results = results + f'**Total: {sum(rolls)}**'
         
         await sendMessage(message, results, triggeredCommand = trigger)
+
+#sends a message as a bot
+async def sendBotMessage(message, trigger):
+    failMessage = 'Invalid arguments. Correct format is !sendbotmessage guild-id channel-id message'
+    
+    messageToSend = ''
+    parameters = removeCommand(message.content, f'!{trigger}')
+    parameters = parameters.split()
+
+    if len(parameters) < 2:
+        await sendMessage(message, failMessage, triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
+    else:
+        if not parameters[0].isnumeric():
+            await sendMessage(message, failMessage, triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
+        else:
+            if not float(parameters[0]).is_integer():
+                await sendMessage(message, failMessage, triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
+            else:
+                messageToSend = ' '.join(parameters[1:len(parameters)])
+                await sendChannelMessage(messageToSend, parameters[0], message)
 
 #load client
 load_dotenv('.env')
@@ -1326,6 +1334,7 @@ botEmailAddress = os.getenv('BOT_EMAIL_ADDRESS')
 botEmailToken = os.getenv('BOT_EMAIL_TOKEN')
 developerEmailAddress = os.getenv('DEVELOPER_EMAIL_ADDRESS')
 testServer = int(os.getenv('DISCORD_TEST_SERVER_ID'))
+testServerVoiceChartChannel = int(os.getenv('DISCORD_TEST_SERVER_VOICE_CHART_CHANNEL_ID'))
 loop = ''
 launchDate = date.today()
 refreshInterval = 300
@@ -1496,36 +1505,37 @@ async def on_reaction_add(reaction, user):
 commands = []
 commands.append(command('help', 'Displays a list of available commands'))
 commands.append(command('restart', 'Restarts the bot', 'restart', admin = True))
-commands.append(command('addusercommand', 'Adds a new simple message command. Format: !addusercommand command, message', 'addUserCommand'))
-commands.append(command('deleteusercommand', 'Deletes a user message command. Format: !deleteusercommand command', 'deleteUserCommand'))
+commands.append(command('addusercommand', 'Adds a new simple message command.', 'addUserCommand', parameters = 'command, message'))
+commands.append(command('deleteusercommand', 'Deletes a user message command.', 'deleteUserCommand', parameters = 'command'))
 commands.append(command('randompin', 'Sends a random pinned message', 'sendRandomPinnedMessage'))
-commands.append(command('kick', 'Kicks a user from voice. Format: !kick @user', 'kickUser', admin = True))
+commands.append(command('kick', 'Kicks a user from voice.', 'kickUser', admin = True, parameters = '@user'))
 commands.append(command('usercommands', 'Displays a list of available user commands', 'listUserCommands'))
-commands.append(command('setstatus', 'Sets the status of the bot', 'setStatus', admin = True))
+commands.append(command('setstatus', 'Sets the status of the bot', 'setStatus', admin = True, parameters = 'status'))
 commands.append(command('setname', 'Sets the display name of the bot', 'setName'))
-commands.append(command('demote', 'Moves a user to the Tier 1 voice chat. Format: !demote @user'))
+commands.append(command('demote', 'Moves a user to the Tier 1 voice chat.', parameters = '@user'))
 commands.append(command('backup', 'Starts a server backup.', admin = True))
 commands.append(command('admincommands', 'Displays a list of available admin commands', 'listAdminCommands', admin = True))
 commands.append(command('kill', 'Ends the bot program', 'kill', admin = True))
 commands.append(command('deletelastbotmessage', 'Deletes the last message sent by the bot', 'deleteLastBotMessage', admin = True))
 commands.append(command('roulette', 'Kicks a random user from voice chat'))
-commands.append(command('ra', 'Sends a random attachment from the channel history', 'randomAttachment'))
-commands.append(command('randomvideo', 'Sends a random youtube video from the channel history', 'randomVideo'))
-commands.append(command('move', 'Moves a user into a specified voice channel. Format: !move channel @user', admin = True))
+commands.append(command('ra', 'Sends a random attachment from the channel history', 'randomAttachment', parameters = 'optional-@user'))
+commands.append(command('randomvideo', 'Sends a random youtube video from the channel history', 'randomVideo', parameters = 'optional-@user'))
+commands.append(command('move', 'Moves a user into a specified voice channel.', admin = True, parameters = 'channel @user'))
 commands.append(command('clearbackup', 'Clears the backup of this server.', 'clearBackup', admin = True))
 commands.append(command('update', 'Updates the source code from Github and restarts', admin = True))
 commands.append(command('uptime', 'Displays the launch time and uptime of the bot'))
 commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', admin = True))
-commands.append(command('randommessage', 'Sends a random message from the channel. Optionally a user can be specified. Format: !randommessage @user', 'randomMessage'))
+commands.append(command('randommessage', 'Sends a random message from the channel.', 'randomMessage', parameters = 'optional-@user'))
 commands.append(command('source', 'Sends the link to the bot source code'))
 commands.append(command('getbackup', 'Creates and sends a backup of the server', 'getBackup'))
 commands.append(command('guilds', 'Displays a list of guilds the bot is connected to', admin = True))
-commands.append(command('voicestats', 'Displays voice stats for the specified user. Optionally a user can be specified. Format: !voicestats @user', 'voiceStats'))
-commands.append(command('rtts', 'Sends a random tts message from the server.', 'randomtts'))
+commands.append(command('voicestats', 'Displays voice stats for the specified user.', 'voiceStats', parameters = 'optional-@user'))
+commands.append(command('rtts', 'Sends a random tts message from the server.', 'randomtts', parameters = 'optional-@user'))
 commands.append(command('ruc', 'Triggers a random user command from the server.', 'randomUserCommand'))
 commands.append(command('join', "Makes the bot join the user's current voice channel.", admin = True))
 commands.append(command('leave', "Makes the bot leave voice in this server.", admin = True))
-commands.append(command('roll', 'Rolls dice. Format: !roll optional-number-of-sides optional-number-of-dice'))
+commands.append(command('roll', 'Rolls dice.', parameters = 'optional-number-of-sides optional-number-of-dice'))
+commands.append(command('sendbotmessage', 'Sends a message as the bot.', "sendBotMessage", admin = True, parameters = 'channel-id message'))
 loadUserCommands()
 
 #launch the refresh timer
