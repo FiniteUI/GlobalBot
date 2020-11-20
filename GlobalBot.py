@@ -1322,7 +1322,12 @@ async def sendBotMessage(message, trigger):
                 await sendMessage(message, failMessage, triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
             else:
                 messageToSend = ' '.join(parameters[1:len(parameters)])
-                await sendChannelMessage(messageToSend, parameters[0], message)
+                if messageToSend.startswith('/tts'):
+                    tts = True
+                    messageToSend = messageToSend.replace('/tts', '')
+                else:
+                    tts = False
+                await sendChannelMessage(messageToSend, parameters[0], message, textToSpeech = tts)
 
 #load client
 load_dotenv('.env')
