@@ -203,7 +203,7 @@ async def sendChannelMessage(message, channelID, triggerMessage, textToSpeech = 
 #lists available commands
 async def help(message, trigger):
     addLog(f'Listing commands', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-    x = ''
+    x = '**Know what you own:**\n'
     s = filter(filterStandardFunctions, commands)
     for i in s:
         x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.fullDescription}\n'''
