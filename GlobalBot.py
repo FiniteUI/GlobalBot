@@ -1534,7 +1534,7 @@ commands.append(command('admincommands', 'Displays a list of available admin com
 commands.append(command('kill', 'Ends the bot program', 'kill', admin = True))
 commands.append(command('deletelastbotmessage', 'Deletes the last message sent by the bot', 'deleteLastBotMessage', admin = True))
 commands.append(command('roulette', 'Kicks a random user from voice chat'))
-commands.append(command('ra', 'Sends a random attachment from the channel history', 'randomAttachment', parameters = 'optional-@user'))
+commands.append(command('ra', 'Sends a random attachment from the channel history', 'randomAttachment', parameters = 'optional-@user, optional-numberOfAttachments'))
 commands.append(command('randomvideo', 'Sends a random youtube video from the channel history', 'randomVideo', parameters = 'optional-@user'))
 commands.append(command('move', 'Moves a user into a specified voice channel.', admin = True, parameters = 'channel @user'))
 commands.append(command('clearbackup', 'Clears the backup of this server.', 'clearBackup', admin = True))
