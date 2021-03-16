@@ -620,19 +620,30 @@ async def randomAttachment(message, trigger):
         targetUserID = None
         targetUserDisplayName = None
         targetUserDiscriminator = None
-    
-    attachments = select(f"select message_attachment_history.id, author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id}{filter} and message_attachment_history.id not in (select ATTACHMENT_ID from RANDOM_ATTACHMENT_BLACKLIST where GUILD_ID = {message.guild.id})", trigger = trigger)
-    if len(attachments) > 0:
-        index = random.randrange(0, len(attachments), 1)
-        attachment = attachments[index][2]
-        author = client.get_user(attachments[index][1])
 
-        utc_timestamp = datetime.strptime(attachments[index][3], '%Y-%m-%d %H:%M:%S.%f')
-        central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
-        central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+    numberOfAttachments = removeCommand(message.content, f'!{trigger}')
+    numberOfAttachments = re.sub(r"<.*>", "", numberOfAttachments).strip()
+    if numberOfAttachments.isnumeric():
+        numberOfAttachments = int(numberOfAttachments)
+        if numberOfAttachments > 10:
+            numberOfAttachments = 10
+            await sendMessage(message, '!ra has a 10 attachment maximum.', triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
+    else:
+        numberOfAttachments = 1
 
-        addLog(f'Sending random attachment', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = attachments[index][0])
-        await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{attachment}', triggeredCommand = trigger)
+    for i in range(numberOfAttachments):
+        attachments = select(f"select message_attachment_history.id, author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id}{filter} and message_attachment_history.id not in (select ATTACHMENT_ID from RANDOM_ATTACHMENT_BLACKLIST where GUILD_ID = {message.guild.id})", trigger = trigger)
+        if len(attachments) > 0:
+            index = random.randrange(0, len(attachments), 1)
+            attachment = attachments[index][2]
+            author = client.get_user(attachments[index][1])
+
+            utc_timestamp = datetime.strptime(attachments[index][3], '%Y-%m-%d %H:%M:%S.%f')
+            central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
+            central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+
+            addLog(f'Sending random attachment', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = attachments[index][0])
+            await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{attachment}', triggeredCommand = trigger)
 
 #sends a random youtube video from chat
 async def randomVideo(message, trigger):
