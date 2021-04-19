@@ -120,9 +120,9 @@ def loadUserCommands():
     userMessages = select('select * from USER_COMMANDS')
     for x in userMessages:
         if x[3]:
-            commands.append(command(x[1], f'Sends the text to speech message "{x[2]}"', 'sendMessage', True, [x[2], x[3]], server = x[5]))
+            commands.append(command(str(x[1]), f'Sends the text to speech message "{x[2]}"', 'sendMessage', True, [x[2], x[3]], server = x[5]))
         else:
-            commands.append(command(x[1], f'Sends the message "{x[2]}"', 'sendMessage', True, [x[2], x[3]], server = x[5]))
+            commands.append(command(str(x[1]), f'Sends the message "{x[2]}"', 'sendMessage', True, [x[2], x[3]], server = x[5]))
 
 #saves a message to MESSAGES
 def saveMessage(message):
