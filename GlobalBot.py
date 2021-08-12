@@ -636,7 +636,8 @@ async def randomAttachment(message, trigger):
         if len(attachments) > 0:
             index = random.randrange(0, len(attachments), 1)
             attachment = attachments[index][2]
-            author = client.get_user(attachments[index][1])
+            #author = client.get_user(int(attachments[index][1]))
+            author = message.guild.get_member(int(attachments[index][1]))
 
             utc_timestamp = datetime.strptime(attachments[index][3], '%Y-%m-%d %H:%M:%S.%f')
             central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
@@ -1358,7 +1359,10 @@ launchTime = datetime.now()
 testMode = checkTestMode()
 players = {}
 
-client = discord.Client()
+intents = discord.Intents.default()
+intents.members = True
+
+client = discord.Client(intents=intents)
 
 @client.event
 async def on_ready():
