@@ -27,6 +27,9 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 import mimetypes
+from PIL import Image
+import pytesseract
+import io
 
 #command class
 class command:
@@ -413,6 +416,16 @@ def grabTopStoredMesage(guild, trigger):
 
 #launches a backup of the server
 async def backup(message = None, trigger = None, silent = False, fromMessage = True, overrideGuild = None):
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+    '''
+    directory = os.getcwd()
+    directory = os.path.join(directory, 'Temp', str(message.guild.id))
+
+    if not os.path.isdir(directory):
+        os.makedirs(directory)
+    '''
+
     if fromMessage:
         guild = message.guild
         invokedUser = message.author
@@ -454,9 +467,31 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
 
             #add attachments
             for a in j.attachments:
-                #rawData = await a.read()
+                if (a.filename.endswith(('.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG'))):
+
+                    rawData = await a.read()
+
+                    '''
+                    filename = f'Temp_{time.time()}_{a.filename}'
+                    filename = os.path.join(directory, filename)
+                    with open(filename, 'wb') as outfile:   
+                        outfile.write(rawData)
+
+                    
+                    image = Image.open(filename)
+                    if os.path.exists(filename):
+                        os.remove(filename)
+                    '''
+                    image = Image.open(io.BytesIO(rawData))
+                    imageText = pytesseract.image_to_string(image)
+                    image.close()
+                else:
+                    imageText = None
+
+                #not actually going to save this for now, so clearing
                 rawData = None
-                attachments.append([a.id, a.size, a.height, a.width, a.filename, a.url, a.proxy_url, a.is_spoiler(), rawData, j.id, str(a), j.guild.id])
+
+                attachments.append([a.id, a.size, a.height, a.width, a.filename, a.url, a.proxy_url, a.is_spoiler(), rawData, j.id, str(a), j.guild.id, imageText])
 
             #save reactions
             for r in j.reactions:
@@ -528,7 +563,7 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
                 records = []
 
                 #save attachments
-                cur.executemany('insert into MESSAGE_ATTACHMENT_HISTORY (ID, SIZE, HEIGHT, WIDTH, FILENAME, URL, PROXY_URL, IS_SPOILER, CONTENTS, MESSAGE_ID, RAW, GUILD_ID) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', attachments)
+                cur.executemany('insert into MESSAGE_ATTACHMENT_HISTORY (ID, SIZE, HEIGHT, WIDTH, FILENAME, URL, PROXY_URL, IS_SPOILER, CONTENTS, MESSAGE_ID, RAW, GUILD_ID, IMAGE_TEXT) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', attachments)
                 attachments = []
 
                 #save reactions
@@ -545,7 +580,7 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
     cur.executemany('insert into MESSAGE_HISTORY (RECORD_TIMESTAMP, TTS, TYPE, AUTHOR, CONTENT, NONCE, EMBEDS, CHANNEL, CALL, MENTION_EVERYONE, MENTIONS, CHANNEL_MENTIONS, ROLE_MENTIONS, ID, WEBHOOK_ID, ATTACHMENTS, PINNED, FLAGS, REACTIONS, ACTIVITY, APPLICATION, GUILD, RAW_MENTIONS, RAW_CHANNEL_MENTIONS, RAW_ROLE_MENTIONS, CLEAN_CONTENT, CREATED_AT, EDITED_AT, JUMP_URL, IS_SYSTEM, SYSTEM_CONTENT, RAW, GUILD_ID, AUTHOR_ID, AUTHOR_DISCRIMINATOR, AUTHOR_DISPLAY_NAME, CHANNEL_ID, AUTHOR_NAME, AUTHOR_BOT) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', records)
 
     #save attachments
-    cur.executemany('insert into MESSAGE_ATTACHMENT_HISTORY (ID, SIZE, HEIGHT, WIDTH, FILENAME, URL, PROXY_URL, IS_SPOILER, CONTENTS, MESSAGE_ID, RAW, GUILD_ID) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', attachments)
+    cur.executemany('insert into MESSAGE_ATTACHMENT_HISTORY (ID, SIZE, HEIGHT, WIDTH, FILENAME, URL, PROXY_URL, IS_SPOILER, CONTENTS, MESSAGE_ID, RAW, GUILD_ID, IMAGE_TEXT) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', attachments)
 
     #save reactions
     cur.executemany('insert into MESSAGE_REACTION_HISTORY (EMOJI, MESSAGE_ID, CUSTOM_EMOJI, REACTION_TIMESTAMP, USER, USER_DISCRIMINATOR, USER_DISPLAY_NAME, EMOJI_ID, EMOJI_REQUIRE_COLONS, ANIMATED, MANAGED, GUILD_ID, AVAILABLE, CREATOR, USER_ID, CREATOR_ID, CREATOR_DISCRIMINATOR, CREATOR_DISPLAY_NAME, CREATED_AT, URL, ROLES, IS_USABLE, RAW_REACTION, RAW_EMOJI, ME, UNICODE, REACTION_GUILD_ID) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', reactions)
