@@ -416,7 +416,6 @@ def grabTopStoredMesage(guild, trigger):
 
 #launches a backup of the server
 async def backup(message = None, trigger = None, silent = False, fromMessage = True, overrideGuild = None):
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
     '''
     directory = os.getcwd()
@@ -1410,6 +1409,7 @@ botEmailToken = os.getenv('BOT_EMAIL_TOKEN')
 developerEmailAddress = os.getenv('DEVELOPER_EMAIL_ADDRESS')
 testServer = int(os.getenv('DISCORD_TEST_SERVER_ID'))
 testServerVoiceChartChannel = int(os.getenv('DISCORD_TEST_SERVER_VOICE_CHART_CHANNEL_ID'))
+pytesseract.pytesseract.tesseract_cmd = os.getenv('TESSERACT_PATH')
 loop = ''
 launchDate = date.today()
 refreshInterval = 300
