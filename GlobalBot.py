@@ -1376,6 +1376,29 @@ async def sendBotMessage(message, trigger):
                     tts = False
                 await sendChannelMessage(messageToSend, parameters[0], message, textToSpeech = tts)
 
+#sends a random file attachment with the specified text from chat
+async def randomAttachmentSearch(message, trigger):
+    filter = removeCommand(message.content, f'!{trigger}')
+
+    if(filter != ""):
+        filter = f" and upper(IMAGE_TEXT) like '%{filter.upper()}%'"
+        attachments = select(f"select message_attachment_history.id, author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id}{filter} and message_attachment_history.id not in (select ATTACHMENT_ID from RANDOM_ATTACHMENT_BLACKLIST where GUILD_ID = {message.guild.id})", trigger = trigger)
+        if len(attachments) > 0:
+            index = random.randrange(0, len(attachments), 1)
+            attachment = attachments[index][2]
+            author = message.guild.get_member(int(attachments[index][1]))
+
+            utc_timestamp = datetime.strptime(attachments[index][3], '%Y-%m-%d %H:%M:%S.%f')
+            central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
+            central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+
+            addLog(f'Sending random attachment', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, target = attachments[index][0])
+            await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{attachment}', triggeredCommand = trigger)
+        else:
+            await sendMessage(message, 'No images matching passed filter found.', triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
+    else:
+        await sendMessage(message, 'Invalid arguments. Correct format is !rasearch search-text', triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
+
 #load client
 load_dotenv('.env')
 token = os.getenv('DISCORD_TOKEN')
@@ -1591,6 +1614,8 @@ commands.append(command('join', "Makes the bot join the user's current voice cha
 commands.append(command('leave', "Makes the bot leave voice in this server.", admin = True))
 commands.append(command('roll', 'Rolls dice.', parameters = 'optional-number-of-sides optional-number-of-dice'))
 commands.append(command('sendbotmessage', 'Sends a message as the bot.', "sendBotMessage", admin = True, parameters = 'channel-id message'))
+commands.append(command('rasearch', 'Sends a random attachment from the channel history', 'randomAttachmentSearch', parameters = 'search-text'))
+
 loadUserCommands()
 
 #launch the refresh timer
