@@ -1614,7 +1614,7 @@ commands.append(command('join', "Makes the bot join the user's current voice cha
 commands.append(command('leave', "Makes the bot leave voice in this server.", admin = True))
 commands.append(command('roll', 'Rolls dice.', parameters = 'optional-number-of-sides optional-number-of-dice'))
 commands.append(command('sendbotmessage', 'Sends a message as the bot.', "sendBotMessage", admin = True, parameters = 'channel-id message'))
-commands.append(command('rasearch', 'Sends a random attachment from the channel history', 'randomAttachmentSearch', parameters = 'search-text'))
+commands.append(command('rasearch', 'Sends a random attachment from the channel history with the passed text in it.', 'randomAttachmentSearch', parameters = 'search-text'))
 
 loadUserCommands()
 
