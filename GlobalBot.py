@@ -30,6 +30,7 @@ import mimetypes
 from PIL import Image
 import pytesseract
 import io
+from PIL import UnidentifiedImageError
 
 #command class
 class command:
@@ -481,9 +482,12 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
                     if os.path.exists(filename):
                         os.remove(filename)
                     '''
-                    image = Image.open(io.BytesIO(rawData))
-                    imageText = pytesseract.image_to_string(image)
-                    image.close()
+                    try:
+                        image = Image.open(io.BytesIO(rawData))
+                        imageText = pytesseract.image_to_string(image)
+                        image.close()
+                    except (TypeError, UnidentifiedImageError):
+                        imageText = None
                 else:
                     imageText = None
 
