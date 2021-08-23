@@ -31,6 +31,7 @@ from PIL import Image
 import pytesseract
 import io
 from PIL import UnidentifiedImageError
+import certifi
 
 #command class
 class command:
@@ -764,7 +765,7 @@ async def refresh(message = None, trigger = None, silent = False):
     if not silent:
         totaltime = time.time() - startTime
         await sendMessage(message, f"Global Refresh finished in {totaltime} seconds.", textToSpeech = False, triggeredCommand = trigger, codeBlock = True)
-    emailSummary()
+    #emailSummary()
     await restart(message, trigger = 'refresh', silent = silent, fromMessage = False)
 
 #add the regresh into the main event loop
@@ -1207,7 +1208,7 @@ def saveTTS(message):
 def emailSummary():
     #need to add logging
     port = 465
-    context = ssl.create_default_context()
+    #context = ssl.create_default_context()
     
     centralTimestamp = convertUTCToTimezone(datetime.now(), 'US/Central')
 
@@ -1243,7 +1244,8 @@ def emailSummary():
         maintype, subtype = ctype.split('/', 1)
         message.add_attachment(contents, maintype = maintype, subtype = subtype, filename = fileName)
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
+    #with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context, certfile=certifi.where()) as server:
+    with smtplib.SMTP_SSL("smtp.gmail.com", port, certfile=certifi.where()) as server:
         server.login(botEmailAddress, botEmailToken)
         server.send_message(message)
         server.quit()
