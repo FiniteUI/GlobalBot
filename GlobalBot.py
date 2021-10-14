@@ -188,7 +188,8 @@ async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteA
 
 #sends a message to the channel
 async def sendChannelMessage(message, channelID, triggerMessage, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None, triggeredCommand = None, codeBlock = False, attachment = None):
-    sendChannel = client.get_channel(int(channelID))
+    #sendChannel = client.get_channel(int(channelID))
+    sendChannel = await client.fetch_channel(int(channelID))
     addLog(f'''Sending message "{message}" to channel {sendChannel.name} in server {sendChannel.guild}, {sendChannel.guild.id}.''', inspect.currentframe().f_code.co_name, server = sendChannel.guild.name, serverID = sendChannel.guild.id, channel = sendChannel.name, channelID = sendChannel.id, command = triggeredCommand)
 
     #message limit is 2000 characters, we may add 2 if codeBlock, so our limit is 1998
@@ -1621,6 +1622,7 @@ commands.append(command('leave', "Makes the bot leave voice in this server.", ad
 commands.append(command('roll', 'Rolls dice.', parameters = 'optional-number-of-sides optional-number-of-dice'))
 commands.append(command('sendbotmessage', 'Sends a message as the bot.', "sendBotMessage", admin = True, parameters = 'channel-id message'))
 commands.append(command('rasearch', 'Sends a random attachment from the channel history with the passed text in it.', 'randomAttachmentSearch', parameters = 'search-text'))
+#commands.append(command('scheduleusercommand', 'Sends a user command automatically at the passed time and interval.', 'scheduleUserCommand', parameters = 'user-command, interval-type (hour, day, week, month, year), interval, start YYYY-MM-DD HH:MM'))
 
 loadUserCommands()
 
