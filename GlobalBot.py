@@ -1359,7 +1359,7 @@ async def roll(message, trigger):
 
 #sends a message as a bot
 async def sendBotMessage(message, trigger):
-    failMessage = 'Invalid arguments. Correct format is !sendbotmessage guild-id channel-id message'
+    failMessage = 'Invalid arguments. Correct format is !sendbotmessage channel-id message'
     
     messageToSend = ''
     parameters = removeCommand(message.content, f'!{trigger}')
