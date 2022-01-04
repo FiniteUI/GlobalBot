@@ -459,8 +459,7 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
         if top == None:
             history = await i.history(limit = None, oldest_first = True).flatten()
         else:
-            #history = await i.history(limit = None, oldest_first = True, after = datetime.strptime(top, '%Y-%m-%d %H:%M:%S.%f')).flatten()
-            history = await i.history(limit = None, oldest_first = True, after = top).flatten()
+            history = await i.history(limit = None, oldest_first = True, after = datetime.strptime(top, '%Y-%m-%d %H:%M:%S.%f')).flatten()
         for j in history:
             if j.type == 'call':
                 call = j.call
