@@ -716,7 +716,40 @@ async def randomVideo(message, trigger):
 
         author = client.get_user(videos[index][1])
 
-        addLog(f'Sending random attachment', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = videos[index][0])
+        addLog(f'Sending random video', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = videos[index][0])
+        await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{urls[0]}', triggeredCommand = trigger)
+
+#sends a random spotify link from chat
+async def randomSpotify(message, trigger):
+    user = message.mentions
+    filter = ''
+    if user != []:
+        filter = f' and author_id = {user[0].id}'
+        targetUser = user[0].name
+        targetUserID = user[0].id
+        targetUserDisplayName = user[0].nick
+        targetUserDiscriminator = user[0].discriminator
+    else:
+        targetUser = None
+        targetUserID = None
+        targetUserDisplayName = None
+        targetUserDiscriminator = None
+
+    videos = select(f"select distinct id, author_id, created_at, content from MESSAGE_HISTORY where (content like '%open.spotify.com/track/%') and author <> 'GlobalBot#9663' and GUILD_ID = {message.guild.id}{filter}", trigger = trigger)
+
+    if len(videos) > 0:
+        index = random.randrange(0, len(videos), 1)
+        video = videos[index][3]
+        extractor = URLExtract()
+        urls = extractor.find_urls(video)
+
+        utc_timestamp = datetime.strptime(videos[index][2], '%Y-%m-%d %H:%M:%S.%f')
+        central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
+        central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
+
+        author = client.get_user(videos[index][1])
+
+        addLog(f'Sending random spotify link', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = videos[index][0])
         await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{urls[0]}', triggeredCommand = trigger)
 
 #Moves a user into a specified voice channel
@@ -1603,14 +1636,14 @@ commands.append(command('admincommands', 'Displays a list of available admin com
 commands.append(command('kill', 'Ends the bot program', 'kill', admin = True))
 commands.append(command('deletelastbotmessage', 'Deletes the last message sent by the bot', 'deleteLastBotMessage', admin = True))
 commands.append(command('roulette', 'Kicks a random user from voice chat'))
-commands.append(command('ra', 'Sends a random attachment from the channel history', 'randomAttachment', parameters = 'optional-@user, optional-numberOfAttachments'))
-commands.append(command('randomvideo', 'Sends a random youtube video from the channel history', 'randomVideo', parameters = 'optional-@user'))
+commands.append(command('ra', 'Sends a random attachment from the server history', 'randomAttachment', parameters = 'optional-@user, optional-numberOfAttachments'))
+commands.append(command('randomvideo', 'Sends a random youtube video from the server history', 'randomVideo', parameters = 'optional-@user'))
 commands.append(command('move', 'Moves a user into a specified voice channel.', admin = True, parameters = 'channel @user'))
 commands.append(command('clearbackup', 'Clears the backup of this server.', 'clearBackup', admin = True))
 commands.append(command('update', 'Updates the source code from Github and restarts', admin = True))
 commands.append(command('uptime', 'Displays the launch time and uptime of the bot'))
 commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', admin = True))
-commands.append(command('randommessage', 'Sends a random message from the channel.', 'randomMessage', parameters = 'optional-@user'))
+commands.append(command('randommessage', 'Sends a random message from the server.', 'randomMessage', parameters = 'optional-@user'))
 commands.append(command('source', 'Sends the link to the bot source code'))
 commands.append(command('getbackup', 'Creates and sends a backup of the server', 'getBackup'))
 commands.append(command('guilds', 'Displays a list of guilds the bot is connected to', admin = True))
@@ -1621,7 +1654,8 @@ commands.append(command('join', "Makes the bot join the user's current voice cha
 commands.append(command('leave', "Makes the bot leave voice in this server.", admin = True))
 commands.append(command('roll', 'Rolls dice.', parameters = 'optional-number-of-sides optional-number-of-dice'))
 commands.append(command('sendbotmessage', 'Sends a message as the bot.', "sendBotMessage", admin = True, parameters = 'channel-id message'))
-commands.append(command('rasearch', 'Sends a random attachment from the channel history with the passed text in it.', 'randomAttachmentSearch', parameters = 'search-text'))
+commands.append(command('rasearch', 'Sends a random attachment from the server history with the passed text in it.', 'randomAttachmentSearch', parameters = 'search-text'))
+commands.append(command('randomspotify', 'Sends a random spotify link from the server history.', 'randomSpotify', parameters = 'optional-@user'))
 #commands.append(command('scheduleusercommand', 'Sends a user command automatically at the passed time and interval.', 'scheduleUserCommand', parameters = 'user-command, interval-type (hour, day, week, month, year), interval, start YYYY-MM-DD HH:MM'))
 
 loadUserCommands()
