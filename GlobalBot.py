@@ -459,7 +459,8 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
         if top == None:
             history = await i.history(limit = None, oldest_first = True).flatten()
         else:
-            history = await i.history(limit = None, oldest_first = True, after = datetime.strptime(top, '%Y-%m-%d %H:%M:%S.%f')).flatten()
+            #history = await i.history(limit = None, oldest_first = True, after = datetime.strptime(top, '%Y-%m-%d %H:%M:%S.%f')).flatten()
+            history = await i.history(limit = None, oldest_first = True, after = top).flatten()
         for j in history:
             if j.type == 'call':
                 call = j.call
@@ -855,7 +856,7 @@ async def randomMessage(message, trigger):
 
 #check if the test.txt file exists
 def checkTestMode():
-    directory = os.getcwd()
+    directory = os.path.dirname(os.path.realpath(__file__))
     directory = os.path.join(directory, 'test.txt')
     if (os.path.isfile(directory)):
         print('The Bot is launching in TEST MODE...')
@@ -1439,9 +1440,17 @@ async def randomAttachmentSearch(message, trigger):
         await sendMessage(message, 'Invalid arguments. Correct format is !rasearch search-text', triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
 
 #load client
-load_dotenv('.env')
+testMode = checkTestMode()
+    
+directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), '.env')
+load_dotenv(directory)
+
+if (testMode):
+    database = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'GlobalBotData.db')
+else:
+    database = os.getenv('GLOBALBOT_DATABASE')
+
 token = os.getenv('DISCORD_TOKEN')
-database = os.getenv('GLOBALBOT_DATABASE')
 finiteui = os.getenv('DISCORD_ID')
 githubToken = os.getenv('GITHUB_TOKEN')
 botEmailAddress = os.getenv('BOT_EMAIL_ADDRESS')
@@ -1454,7 +1463,6 @@ loop = ''
 launchDate = date.today()
 refreshInterval = 300
 launchTime = datetime.now()
-testMode = checkTestMode()
 players = {}
 
 intents = discord.Intents.default()
