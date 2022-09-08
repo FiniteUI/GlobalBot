@@ -1226,8 +1226,8 @@ async def randomUserCommand(message, trigger):
         randomUserCommand = userCommands[x]
     
         addLog(f'{message.guild} user {message.author} triggered user command [{randomUserCommand.trigger}] via !ruc.', inspect.currentframe().f_code.co_name, randomUserCommand.trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, arguments = str(randomUserCommand.arguments), invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, target = randomUserCommand.trigger)
-        async with message.channel.typing():
-            await randomUserCommand.run(message, includeCommand = True)
+        #async with message.channel.typing():
+        await randomUserCommand.run(message, includeCommand = True)
 
 #save tts message ids to TTS_LOG
 def saveTTS(message):
@@ -1464,7 +1464,7 @@ refreshInterval = 300
 launchTime = datetime.now()
 players = {}
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.members = True
 
 client = discord.Client(intents=intents)
@@ -1506,8 +1506,8 @@ async def on_message(message):
                             await sendMessage(message, 'This command is admin only.', deleteAfter = 20, triggeredCommand = x.trigger.lower())
                             return
                 addLog(f'{message.guild} user {message.author} triggered {commandType}command [{x.trigger}].', inspect.currentframe().f_code.co_name, command, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, arguments = str(x.arguments), invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-                async with message.channel.typing():
-                    await x.run(message)
+                #async with message.channel.typing():
+                await x.run(message)
                 break
 
 @client.event
