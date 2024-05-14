@@ -154,6 +154,8 @@ def chunkstring(string, length):
 #chunks a string into pieces of size length, but respects line breaks
 def chunkStringNewLine(string, length):
     splitString = string.split('\n')
+    if splitString[0] == '':
+        splitString.pop(0)
     returnStrings = []
     tempString = ''
     for i in splitString:
@@ -163,6 +165,7 @@ def chunkStringNewLine(string, length):
         else:
             tempString = tempString + '\n' +  i
     returnStrings.append(tempString)
+    addLog(f'chunkStringNewLine returning chunked string: {returnStrings}', inspect.currentframe().f_code.co_name)
     return returnStrings
 
 #sends a message to the channel
@@ -176,10 +179,11 @@ async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteA
     if len(sendMessage) > 1998:
         x = chunkStringNewLine(sendMessage, 1998)
         for i in x:
-            if codeBlock:
-                await triggerMessage.channel.send(f'`{i}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
-            else:
-                await triggerMessage.channel.send(i, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
+            if i != '':
+                if codeBlock:
+                    await triggerMessage.channel.send(f'`{i}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
+                else:
+                    await triggerMessage.channel.send(i, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
     else:
         if codeBlock:
             await triggerMessage.channel.send(f'`{sendMessage}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
@@ -221,15 +225,27 @@ async def listUserCommands(message, trigger):
     x = ''
     s = filterCommands(commands, message.guild.id)
     s = filter(filterUserFunctions, s)
-    extractor = URLExtract()
+    #extractor = URLExtract()
     for i in s:
         if i.server == message.guild.id:
-            description = i.fullDescription
-            urls = extractor.find_urls(i.description)
-            for url in urls:
-                description = description.replace(url, f'<{url}>')
-            x = x + f'''**!{i.trigger.ljust(20)}** - \t{description}\n'''
-    await sendMessage(message, x, triggeredCommand = trigger)
+            #this is way too long in our server
+            #may add this as a seperate function later
+            #description = i.fullDescription
+            #urls = extractor.find_urls(i.description)
+            #for url in urls:
+            #    description = description.replace(url, f'<{url}>')
+            #x = x + f'''**!{i.trigger.ljust(20)}** - \t{description}\n'''
+            if len(x) + 2 + len(i.trigger) > 2000:
+                await sendMessage(message, x, triggeredCommand = trigger)
+                x = ''
+            
+            if x != '':
+                x += ', ' + i.trigger
+            else:
+                x += '**User Commands:** ' + i.trigger
+
+    if x != '':
+        await sendMessage(message, x, triggeredCommand = trigger)
 
 #restart the bot
 async def restart(message = None, trigger = None, silent = False, fromMessage = True):

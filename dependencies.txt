@@ -1,0 +1,8 @@
+discord
+python-dotenv
+pygithub
+urlextract
+pytz
+matplotlib
+pytesseract
+
