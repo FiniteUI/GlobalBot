@@ -12,26 +12,17 @@ from datetime import datetime
 from datetime import date
 from dotenv import load_dotenv
 from github import Github
-import base64
 from urlextract import URLExtract
 import asyncio
 import threading
-import subprocess
 import pytz
 import csv
 import zipfile
-import zlib
-import matplotlib
-import matplotlib.pyplot
-import smtplib
-import ssl
 from email.message import EmailMessage
-import mimetypes
 from PIL import Image
 import pytesseract
 import io
 from PIL import UnidentifiedImageError
-import certifi
 
 #command class
 class command:
@@ -78,7 +69,7 @@ class command:
             await globals()[self.function](message, *tempArguments, triggeredCommand = self.trigger)
         else:
             await globals()[self.function](message, trigger = self.trigger)
-            
+         
 #returns and open connection to the database
 def openConnection():
     con = sqlite3.connect(database)
@@ -88,6 +79,33 @@ def openConnection():
 #closes the given database connection
 def closeConnection(con):
     con.close()
+
+#executes a select statement from the database, returns the result
+def select(SQL, trigger = None):
+    addLog(f'Executing select SQL [{SQL}]', inspect.currentframe().f_code.co_name, command = trigger)
+    con = openConnection()
+    cur = con.cursor()
+    cur.execute(SQL)
+    x = cur.fetchall() 
+    closeConnection(con)
+    return x
+
+#chunks a string into pieces of size length, but respects line breaks
+def chunkStringNewLine(string, length):
+    splitString = string.split('\n')
+    if splitString[0] == '':
+        splitString.pop(0)
+    returnStrings = []
+    tempString = ''
+    for i in splitString:
+        if len(i) + len(tempString) > length:
+            returnStrings.append(tempString)
+            tempString = i
+        else:
+            tempString = tempString + '\n' +  i
+    returnStrings.append(tempString)
+    addLog(f'chunkStringNewLine returning chunked string: {returnStrings}', inspect.currentframe().f_code.co_name)
+    return returnStrings
 
 #prints a message in the shell and adds it to BOT_LOG
 def addLog(message, function = None, command = None, arguments = None, targetUser = None, targetUserID = None, server = None, serverID = None, channel = None, channelID = None, invokedUser = None, invokedUserID = None, invokedUserDiscriminator = None, invokedUserDisplayName = None, targetUserDiscriminator = None, targetUserDisplayName = None, messageID = None, printLog = True, voiceChannel = None, voiceChannelID = None, target = None):
@@ -109,16 +127,6 @@ def saveUserCommand(message, command, commandMessage, textToSpeech):
     con.commit()
     closeConnection(con)
 
-#executes a select statement from the database, returns the result
-def select(SQL, trigger = None):
-    addLog(f'Executing select SQL [{SQL}]', inspect.currentframe().f_code.co_name, command = trigger)
-    con = openConnection()
-    cur = con.cursor()
-    cur.execute(SQL)
-    x = cur.fetchall() 
-    closeConnection(con)
-    return x
-
 #loads user commands from USER_COMMANDS
 def loadUserCommands():
     addLog('Loading user commands...', inspect.currentframe().f_code.co_name)
@@ -128,45 +136,6 @@ def loadUserCommands():
             commands.append(command(str(x[1]), f'Sends the text to speech message "{x[2]}"', 'sendMessage', True, [x[2], x[3]], server = x[5]))
         else:
             commands.append(command(str(x[1]), f'Sends the message "{x[2]}"', 'sendMessage', True, [x[2], x[3]], server = x[5]))
-
-#saves a message to MESSAGES
-def saveMessage(message):
-    addLog(f'Receiving {message.guild} message: {message.id}', inspect.currentframe().f_code.co_name, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
-
-    con = openConnection()
-    cur = con.cursor()
-
-    if message.type == 'call':
-        call = message.call
-    else:
-        call = None
-
-    data = [message.tts, str(message.type), str(message.author), str(message.content), message.nonce, str(message.embeds), str(message.channel), call, message.mention_everyone, str(message.mentions), str(message.channel_mentions), str(message.role_mentions), message.id, message.webhook_id, str(message.attachments), message.pinned, str(message.flags), str(message.reactions), str(message.activity), message.application, str(message.guild), str(message.raw_mentions), str(message.raw_channel_mentions), str(message.raw_role_mentions), message.clean_content, message.created_at, message.edited_at, message.jump_url, str(message.is_system()), message.system_content, str(message), message.guild.id, message.author.id, message.author.discriminator, message.author.display_name, message.channel.id]
-
-    cur.execute('insert into MESSAGES (TTS, TYPE, AUTHOR, CONTENT, NONCE, EMBEDS, CHANNEL, CALL, MENTION_EVERYONE, MENTIONS, CHANNEL_MENTIONS, ROLE_MENTIONS, ID, WEBHOOK_ID, ATTACHMENTS, PINNED, FLAGS, REACTIONS, ACTIVITY, APPLICATION, GUILD, RAW_MENTIONS, RAW_CHANNEL_MENTIONS, RAW_ROLE_MENTIONS, CLEAN_CONTENT, CREATED_AT, EDITED_AT, JUMP_URL, IS_SYSTEM, SYSTEM_CONTENT, RAW, GUILD_ID, AUTHOR_ID, AUTHOR_DISCRIMINATOR, AUTHOR_DISPLAY_NAME, CHANNEL_ID) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', data)
-    con.commit()
-    closeConnection(con)
-
-#chunks a string into pieces of size length
-def chunkstring(string, length):
-    return (string[0+i:length+i] for i in range(0, len(string), length))
-
-#chunks a string into pieces of size length, but respects line breaks
-def chunkStringNewLine(string, length):
-    splitString = string.split('\n')
-    if splitString[0] == '':
-        splitString.pop(0)
-    returnStrings = []
-    tempString = ''
-    for i in splitString:
-        if len(i) + len(tempString) > length:
-            returnStrings.append(tempString)
-            tempString = i
-        else:
-            tempString = tempString + '\n' +  i
-    returnStrings.append(tempString)
-    addLog(f'chunkStringNewLine returning chunked string: {returnStrings}', inspect.currentframe().f_code.co_name)
-    return returnStrings
 
 #sends a message to the channel
 async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None, triggeredCommand = None, codeBlock = False, attachment = None):
@@ -189,26 +158,6 @@ async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteA
             await triggerMessage.channel.send(f'`{sendMessage}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
         else:
             await triggerMessage.channel.send(sendMessage, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
-
-#sends a message to the channel
-async def sendChannelMessage(message, channelID, triggerMessage, textToSpeech = False, deleteAfter = None, embedItem = None, embedItems = None, triggeredCommand = None, codeBlock = False, attachment = None):
-    #sendChannel = client.get_channel(int(channelID))
-    sendChannel = await client.fetch_channel(int(channelID))
-    addLog(f'''Sending message "{message}" to channel {sendChannel.name} in server {sendChannel.guild}, {sendChannel.guild.id}.''', inspect.currentframe().f_code.co_name, server = sendChannel.guild.name, serverID = sendChannel.guild.id, channel = sendChannel.name, channelID = sendChannel.id, command = triggeredCommand)
-
-    #message limit is 2000 characters, we may add 2 if codeBlock, so our limit is 1998
-    if len(message) > 1998:
-        x = chunkStringNewLine(message, 1998)
-        for i in x:
-            if codeBlock:
-                await sendChannel.send(f'`{i}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
-            else:
-                await sendChannel.send(i, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
-    else:
-        if codeBlock:
-            await sendChannel.send(f'`{message}`', tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
-        else:
-            await sendChannel.send(message, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
 
 #lists available commands
 async def help(message, trigger):
@@ -347,20 +296,6 @@ async def sendRandomPinnedMessage(message, trigger):
         addLog(f'Sending random pinned message {pin[x]}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id)
         await sendMessage(message, pin[x].jump_url, triggeredCommand = trigger)
 
-#kicks a user out of voice chat
-async def kickUser(message, trigger):
-    users = message.mentions
-    if users == []:
-        await sendMessage(message, 'Invalid format. Correct format is !kick @user.', deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
-    else:
-        for x in users:
-            if x.voice == None:
-                await sendMessage(message, f'User {x.display_name} is not currently in a voice channel.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
-            else:
-                addLog(f'Kicking user {x.display_name} from voice', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, targetUser = x.name, targetUserID = x.id, targetUserDiscriminator = x.discriminator, targetUserDisplayName = x.display_name, messageID = message.id)
-                await x.move_to(None)
-                await sendMessage(message, f'Kicking user {x.display_name} from voice', triggeredCommand = trigger, codeBlock = True)
-
 #kicks a random user out of voice chat
 async def roulette(message, trigger):
     channels = message.guild.voice_channels
@@ -400,31 +335,6 @@ async def setName(message, trigger):
         member = message.guild.get_member(client.user.id)
         await member.edit(nick = y)
 
-#sends a user to the tier 1 voice chat
-async def demote(message, trigger):
-    users = message.mentions
-    if users == []:
-        await sendMessage(message, 'Invalid format. Correct format is !demote @user.', deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
-    else:
-        for x in users:
-            if x.voice == None:
-                await sendMessage(message, f'User {x.display_name} is not currently in a voice channel.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
-            else:
-                tier1 = getChannelByName(message.guild, 'Tier 1')
-                if tier1 == None:
-                    await sendMessage(message, 'There is currently no Tier 1 voice channel.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
-                else:
-                    addLog(f'Moving user {x.display_name} to Tier 1 voice channel.', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, targetUser = x.name, targetUserID = x.id, targetUserDiscriminator = x.discriminator, targetUserDisplayName = x.display_name, messageID = message.id)
-                    await x.move_to(tier1)
-                    await sendMessage(message, f'Demoting user {x.display_name} to Tier 1.', triggeredCommand = trigger, codeBlock = True)
-
-#gets a channel by name
-def getChannelByName(server, name):
-    for i in server.voice_channels:
-        if i.name == name:
-            return i
-    return None
-
 #grabs the top stored message id
 def grabTopStoredMesage(guild, trigger):
     x = select(f'select created_at from MESSAGE_HISTORY where GUILD_ID = {guild.id} order by created_at desc limit 1', trigger = trigger)
@@ -435,15 +345,6 @@ def grabTopStoredMesage(guild, trigger):
 
 #launches a backup of the server
 async def backup(message = None, trigger = None, silent = False, fromMessage = True, overrideGuild = None):
-
-    '''
-    directory = os.getcwd()
-    directory = os.path.join(directory, 'Temp', str(message.guild.id))
-
-    if not os.path.isdir(directory):
-        os.makedirs(directory)
-    '''
-
     if fromMessage:
         guild = message.guild
         invokedUser = message.author
@@ -467,16 +368,22 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
         await sendMessage(message, f'Backing up server {guild.name}...', triggeredCommand = trigger, codeBlock = True)
     startTime = time.time()
     top = grabTopStoredMesage(guild, trigger)
+    if top == None:
+        top = '2010-01-01 12:00:00.000000+00:00'
+    top = datetime.strptime(top, '%Y-%m-%d %H:%M:%S.%f%z')
+
+    addLog(f'Last stored message timestamp: {top}...', inspect.currentframe().f_code.co_name, trigger, server = guild.name, serverID = guild.id, channel = channelName, channelID = channelID, invokedUser = invokedUser.name, invokedUserID = invokedUser.id, invokedUserDiscriminator = invokedUser.discriminator, invokedUserDisplayName = displayName, messageID = messageID, target = guild.id)
+    
     records = []
     attachments = []
-    reactions = []
 
     for i in guild.text_channels:
-        if top == None:
-            history = await i.history(limit = None, oldest_first = True).flatten()
-        else:
-            history = await i.history(limit = None, oldest_first = True, after = datetime.strptime(top, '%Y-%m-%d %H:%M:%S.%f')).flatten()
-        for j in history:
+        #if top == None:
+        #    history = [message async for message in i.history(limit = None, oldest_first = True)]
+        #else:
+        #    history = [message async for message in i.history(limit = None, oldest_first = True, after = datetime.strptime(top, '%Y-%m-%d %H:%M:%S.%f'))]
+        #for j in history:
+        async for j in i.history(limit = None, oldest_first = True, after = top):
             if j.type == 'call':
                 call = j.call
             else:
@@ -488,18 +395,7 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
                 if (a.filename.endswith(('.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG'))):
 
                     rawData = await a.read()
-
-                    '''
-                    filename = f'Temp_{time.time()}_{a.filename}'
-                    filename = os.path.join(directory, filename)
-                    with open(filename, 'wb') as outfile:   
-                        outfile.write(rawData)
-
                     
-                    image = Image.open(filename)
-                    if os.path.exists(filename):
-                        os.remove(filename)
-                    '''
                     try:
                         image = Image.open(io.BytesIO(rawData))
                         imageText = pytesseract.image_to_string(image)
@@ -514,66 +410,7 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
 
                 attachments.append([a.id, a.size, a.height, a.width, a.filename, a.url, a.proxy_url, a.is_spoiler(), rawData, j.id, str(a), j.guild.id, imageText])
 
-            #save reactions
-            for r in j.reactions:
-                for u in await r.users().flatten():
-                    if r.custom_emoji:
-                        name = r.emoji.name
-                        id = r.emoji.id
-                        animated = r.emoji.animated
-                        url = r.emoji.url
-                        unicode = None
-                        if type(r.emoji) == discord.PartialEmoji:
-                            require_colons = None
-                            managed = None
-                            guild_id = None
-                            available = None
-                            user_name = None
-                            user_id =  None
-                            user_discriminator = None
-                            user_display_name = None
-                            created_at = None
-                            roles = None
-                            is_usable = None
-                        else:
-                            require_colons = r.emoji.require_colons
-                            managed = r.emoji.managed
-                            guild_id = r.emoji.guild_id
-                            available = r.emoji.available
-                            created_at = r.emoji.created_at
-                            roles = r.emoji.roles
-                            is_usable = r.emoji.is_usable()
-                            if r.emoji.user != None:
-                                user_name = r.emoji.user.name
-                                user_id =  r.emoji.user.id
-                                user_discriminator = r.emoji.user.discriminator
-                                user_display_name = r.emoji.user.display_name
-                            else:
-                                user_name = None
-                                user_id =  None
-                                user_discriminator = None
-                                user_display_name = None
-                    else:
-                        name = None
-                        id = None
-                        require_colons = None
-                        animated = None
-                        managed = None
-                        guild_id = None
-                        available = None
-                        user_name = None
-                        user_id = None
-                        user_discriminator = None
-                        user_display_name = None
-                        created_at = None
-                        url = None
-                        roles = None
-                        is_usable = None
-                        unicode = r.emoji
-
-                    reactions.append([name, j.id, r.custom_emoji, None, u.name, u.discriminator, u.display_name, id, require_colons, animated, managed, guild_id, available, user_name, u.id, user_id, user_discriminator, user_display_name, created_at, str(url), str(roles), is_usable, str(r), str(r.emoji), r.me, unicode, j.id])
-
-            if len(records) + len(attachments) + len(reactions) > recordLimit:
+            if len(records) + len(attachments) > recordLimit:
                 addLog(f'Record limit reached, saving partial and continuing...', inspect.currentframe().f_code.co_name, trigger, server = guild.name, serverID = guild.id, channel = channelName, channelID = channelID, invokedUser = invokedUser.name, invokedUserID = invokedUser.id, invokedUserDiscriminator = invokedUser.discriminator, invokedUserDisplayName = displayName, messageID = messageID)
 
                 con = openConnection()
@@ -587,10 +424,6 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
                 cur.executemany('insert into MESSAGE_ATTACHMENT_HISTORY (ID, SIZE, HEIGHT, WIDTH, FILENAME, URL, PROXY_URL, IS_SPOILER, CONTENTS, MESSAGE_ID, RAW, GUILD_ID, IMAGE_TEXT) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', attachments)
                 attachments = []
 
-                #save reactions
-                cur.executemany('insert into MESSAGE_REACTION_HISTORY (EMOJI, MESSAGE_ID, CUSTOM_EMOJI, REACTION_TIMESTAMP, USER, USER_DISCRIMINATOR, USER_DISPLAY_NAME, EMOJI_ID, EMOJI_REQUIRE_COLONS, ANIMATED, MANAGED, GUILD_ID, AVAILABLE, CREATOR, USER_ID, CREATOR_ID, CREATOR_DISCRIMINATOR, CREATOR_DISPLAY_NAME, CREATED_AT, URL, ROLES, IS_USABLE, RAW_REACTION, RAW_EMOJI, ME, UNICODE, REACTION_GUILD_ID) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', reactions)
-                reactions = []
-
                 con.commit()
                 closeConnection(con)
 
@@ -602,9 +435,6 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
 
     #save attachments
     cur.executemany('insert into MESSAGE_ATTACHMENT_HISTORY (ID, SIZE, HEIGHT, WIDTH, FILENAME, URL, PROXY_URL, IS_SPOILER, CONTENTS, MESSAGE_ID, RAW, GUILD_ID, IMAGE_TEXT) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', attachments)
-
-    #save reactions
-    cur.executemany('insert into MESSAGE_REACTION_HISTORY (EMOJI, MESSAGE_ID, CUSTOM_EMOJI, REACTION_TIMESTAMP, USER, USER_DISCRIMINATOR, USER_DISPLAY_NAME, EMOJI_ID, EMOJI_REQUIRE_COLONS, ANIMATED, MANAGED, GUILD_ID, AVAILABLE, CREATOR, USER_ID, CREATOR_ID, CREATOR_DISCRIMINATOR, CREATOR_DISPLAY_NAME, CREATED_AT, URL, ROLES, IS_USABLE, RAW_REACTION, RAW_EMOJI, ME, UNICODE, REACTION_GUILD_ID) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', reactions)
 
     con.commit()
     closeConnection(con)
@@ -644,7 +474,8 @@ async def kill(message, trigger):
 
 #deletes the last bot message
 async def deleteLastBotMessage(message, trigger):
-    messages = await message.channel.history(limit = 100).flatten()
+    #messages = await message.channel.history(limit = 100).flatten()
+    messages = [message async for message in message.channel.history(limit = 100)]
     for i in messages:
         if i.author == client.user:
             addLog(f'Deleting last bot message {i.id}...', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, target = i.id)
@@ -656,8 +487,11 @@ async def deleteLastBotMessage(message, trigger):
 #converts a UTC datetime into a specific timezone
 def convertUTCToTimezone(utc_timestamp, timezone):
     utc = pytz.timezone('UTC')
+
+    if utc_timestamp.tzinfo == None:
+        utc_timestamp = utc.localize(utc_timestamp)
+
     newTimezone = pytz.timezone(timezone)
-    utc_timestamp = utc.localize(utc_timestamp)
     newTimestamp = utc_timestamp.astimezone(newTimezone)
     return newTimestamp
 
@@ -688,20 +522,17 @@ async def randomAttachment(message, trigger):
         numberOfAttachments = 1
 
     for i in range(numberOfAttachments):
-        attachments = select(f"select message_attachment_history.id, author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id}{filter} and message_attachment_history.id not in (select ATTACHMENT_ID from RANDOM_ATTACHMENT_BLACKLIST where GUILD_ID = {message.guild.id})", trigger = trigger)
-        if len(attachments) > 0:
-            index = random.randrange(0, len(attachments), 1)
-            attachment = attachments[index][2]
-            #author = client.get_user(int(attachments[index][1]))
-            author = message.guild.get_member(int(attachments[index][1]))
-
-            utc_timestamp = datetime.strptime(attachments[index][3], '%Y-%m-%d %H:%M:%S.%f')
+        record = select(f"select message_attachment_history.id, author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id}{filter} and message_attachment_history.id not in (select ATTACHMENT_ID from RANDOM_ATTACHMENT_BLACKLIST where GUILD_ID = {message.guild.id}) order by RANDOM() limit 1", trigger = trigger)
+        if len(record) > 0:
+            attachment = record[0][2]
+            author = message.guild.get_member(int(record[0][1]))
+            utc_timestamp = datetime.strptime(record[0][3], '%Y-%m-%d %H:%M:%S.%f')
             central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
             central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
-
-            addLog(f'Sending random attachment', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = attachments[index][0])
+            
+            addLog(f'Sending random attachment', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = record[0][0])
             await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{attachment}', triggeredCommand = trigger)
-
+            
 #sends a random youtube video from chat
 async def randomVideo(message, trigger):
     user = message.mentions
@@ -718,21 +549,19 @@ async def randomVideo(message, trigger):
         targetUserDisplayName = None
         targetUserDiscriminator = None
 
-    videos = select(f"select distinct id, author_id, created_at, content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663' and GUILD_ID = {message.guild.id}{filter}", trigger = trigger)
-
+    videos = select(f"select distinct id, author_id, created_at, content from MESSAGE_HISTORY where (content like '%youtube.com%' or '%youtu.be%') and author <> 'GlobalBot#9663' and GUILD_ID = {message.guild.id}{filter} order by RANDOM() limit 1", trigger = trigger)
     if len(videos) > 0:
-        index = random.randrange(0, len(videos), 1)
-        video = videos[index][3]
+        video = videos[0][3]
         extractor = URLExtract()
         urls = extractor.find_urls(video)
 
-        utc_timestamp = datetime.strptime(videos[index][2], '%Y-%m-%d %H:%M:%S.%f')
+        utc_timestamp = datetime.strptime(videos[0][2], '%Y-%m-%d %H:%M:%S.%f')
         central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
         central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
-        author = client.get_user(videos[index][1])
+        author = client.get_user(videos[0][1])
 
-        addLog(f'Sending random video', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = videos[index][0])
+        addLog(f'Sending random video', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = videos[0][0])
         await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{urls[0]}', triggeredCommand = trigger)
 
 #sends a random spotify link from chat
@@ -751,42 +580,21 @@ async def randomSpotify(message, trigger):
         targetUserDisplayName = None
         targetUserDiscriminator = None
 
-    videos = select(f"select distinct id, author_id, created_at, content from MESSAGE_HISTORY where (content like '%open.spotify.com/track/%') and author <> 'GlobalBot#9663' and GUILD_ID = {message.guild.id}{filter}", trigger = trigger)
+    links = select(f"select distinct id, author_id, created_at, content from MESSAGE_HISTORY where (content like '%open.spotify.com/track/%') and author <> 'GlobalBot#9663' and GUILD_ID = {message.guild.id}{filter} order by RANDOM() limit 1", trigger = trigger)
 
-    if len(videos) > 0:
-        index = random.randrange(0, len(videos), 1)
-        video = videos[index][3]
+    if len(links) > 0:
+        link = links[0][3]
         extractor = URLExtract()
-        urls = extractor.find_urls(video)
+        urls = extractor.find_urls(link)
 
-        utc_timestamp = datetime.strptime(videos[index][2], '%Y-%m-%d %H:%M:%S.%f')
+        utc_timestamp = datetime.strptime(links[0][2], '%Y-%m-%d %H:%M:%S.%f')
         central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
         central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
-        author = client.get_user(videos[index][1])
+        author = client.get_user(links[0][1])
 
-        addLog(f'Sending random spotify link', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = videos[index][0])
+        addLog(f'Sending random spotify link', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = links[0][0])
         await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{urls[0]}', triggeredCommand = trigger)
-
-#Moves a user into a specified voice channel
-async def move(message, trigger):
-    users = message.mentions
-    channelName = removeCommand(message.content, f'!{trigger}')
-    channelName = re.sub(r"<.*>", "", channelName).strip()
-    if users == []:
-        await sendMessage(message, 'Invalid format. Correct format is !move channel @user.', deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
-    else:
-        for x in users:
-            if x.voice == None:
-                await sendMessage(message, f'User {x.display_name} is not currently in a voice channel.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
-            else:
-                channel = getChannelByName(message.guild, channelName)
-                if channel == None:
-                    await sendMessage(message, f'There is currently no {channelName} channel.', deleteAfter = 10, triggeredCommand = trigger, codeBlock = True)
-                else:
-                    addLog(f'Moving user {x.display_name} to {channelName} voice channel.', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, targetUser = x.name, targetUserID = x.id, targetUserDiscriminator = x.discriminator, targetUserDisplayName = x.display_name, messageID = message.id, target = channel.id, voiceChannel = channel.name, voiceChannelID = channel.id)
-                    await x.move_to(channel)
-                    await sendMessage(message, f'Moving user {x.display_name} to voice channel {channelName}.', triggeredCommand = trigger, codeBlock = True)
 
 #downloads the newest version of the source from github
 async def update(message, trigger):
@@ -815,7 +623,6 @@ async def refresh(message = None, trigger = None, silent = False):
     if not silent:
         totaltime = time.time() - startTime
         await sendMessage(message, f"Global Refresh finished in {totaltime} seconds.", textToSpeech = False, triggeredCommand = trigger, codeBlock = True)
-    #emailSummary()
     await restart(message, trigger = 'refresh', silent = silent, fromMessage = False)
 
 #add the regresh into the main event loop
@@ -856,17 +663,16 @@ async def randomMessage(message, trigger):
         targetUserDisplayName = None
         targetUserDiscriminator = None
 
-    messages = select(f"select distinct id from MESSAGE_HISTORY where content <> '' and guild_id = {message.guild.id} and channel_id = {message.channel.id}{filter}", trigger)
+    messages = select(f"select distinct id from MESSAGE_HISTORY where content <> '' and guild_id = {message.guild.id} and channel_id = {message.channel.id}{filter} order by RANDOM() limit 1", trigger)
     if len(messages) > 0:
-        x = random.randrange(0, len(messages), 1)
-        randomMessage = messages[x][0]
+        randomMessage = messages[0][0]
         randomMessage = await message.channel.fetch_message(randomMessage)
 
         central_timestamp = convertUTCToTimezone(randomMessage.created_at, 'US/Central')
         central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
         text = f'On {central_timestamp}, {randomMessage.author.mention} said:\nLink: {randomMessage.jump_url}\n>>> {randomMessage.content}'
-        addLog(f'Sending random message', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = messages[x][0])
+        addLog(f'Sending random message', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = targetUser, targetUserID = targetUserID, targetUserDisplayName = targetUserDisplayName, targetUserDiscriminator = targetUserDiscriminator, target = messages[0][0])
         await sendMessage(message, text, triggeredCommand = trigger)
 
 #check if the test.txt file exists
@@ -932,246 +738,6 @@ async def guilds(message, trigger):
         text = f'{text}{x.id}, {x.name}\n'
     await sendMessage(message, text, triggeredCommand = trigger, codeBlock = True)
 
-#displays voice stats for the specified user
-async def voiceStats(message, trigger):
-    users = message.mentions
-    if len(users) == 0:
-        users = [message.author]
-    for user in users:
-        addLog(f'Generating voice stats for {user}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, targetUser = user.name, targetUserID = user.id, targetUserDisplayName = user.nick, targetUserDiscriminator = user.discriminator)
-        chatTime = None
-        streamTime = None
-        mutedTime = None
-        deafenedTime = None
-        videoTime = None
-        lastJoin = None
-        lastChange = None
-        lastDeafen = None
-        lastMute = None
-        lastVideo = None
-        lastStream = None
-        channel = None
-        channels = {}
-        last = None
-        voiceLogs = select(f'select * from VOICE_ACTIVITY where GUILD_ID = {message.guild.id} and USER_ID = {user.id} order by RECORD_TIMESTAMP', trigger)
-        for i in voiceLogs:
-            if i['EVENT'] == 'JOIN_VOICE':
-                lastJoin = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                if i['AFTER_SELF_DEAF'] == 1:
-                    lastDeafen = lastJoin
-                elif i['AFTER_SELF_MUTE'] == 1:
-                    lastMute = lastJoin
-
-                if i['AFTER_SELF_STREAM'] == 1:
-                    lastStream = lastJoin
-                
-                if i['AFTER_SELF_VIDEO'] == 1:
-                    lastVideo = lastJoin
-
-                channel = i['AFTER_CHANNEL_ID']
-                if channel not in channels:
-                    channels[channel] = datetime.now() - datetime.now()
-                lastChange = lastJoin
-
-            elif i['EVENT'] == 'DEAFEN':
-                lastDeafen = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-
-            elif i['EVENT'] == 'MUTE':
-                lastMute = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-
-            elif i['EVENT'] == 'VIDEO_START':
-                lastVideo = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-
-            elif i['EVENT'] == 'STREAM_START':
-                lastStream = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-
-            elif i['EVENT'] == 'LEAVE_VOICE':
-                if lastJoin != None:
-                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                    last = end - lastJoin
-                    if chatTime != None:
-                        chatTime = chatTime + last
-                    else:
-                        chatTime = last
-                    lastJoin = None
-
-                    if channel != None:
-                        channels[channel] = channels[channel] + (end - lastChange)
-                        channel = None
-                        lastChange = None
-
-                if lastDeafen != None:
-                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                    if deafenedTime != None:
-                        deafenedTime = deafenedTime + (end - lastDeafen)
-                    else:
-                        deafenedTime = (end - lastDeafen)
-                    lastDeafen = None
-
-                if lastMute != None:
-                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                    if mutedTime != None:
-                        mutedTime = mutedTime + (end - lastMute)
-                    else:
-                        mutedTime = (end - lastMute)
-                    lastMute = None
-
-                if lastVideo != None:
-                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                    if videoTime != None:
-                        videoTime = videoTime + (end - lastVideo)
-                    else:
-                        videoTime = (end - lastVideo)
-                    lastVideo = None
-
-                if lastStream != None:
-                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                    if streamTime != None:
-                        streamTime = streamTime + (end - lastStream)
-                    else:
-                        streamTime = (end - lastStream)
-                    lastStream = None
-
-            elif i['EVENT'] == 'UNDEAFEN':
-                if lastDeafen != None:
-                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                    if deafenedTime != None:
-                        deafenedTime = deafenedTime + (end - lastDeafen)
-                    else:
-                        deafenedTime = (end - lastDeafen)
-                    lastDeafen = None
-
-            elif i['EVENT'] == 'UNMUTE':
-                if lastMute != None:
-                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                    if mutedTime != None:
-                        mutedTime = mutedTime + (end - lastMute)
-                    else:
-                        mutedTime = (end - lastMute)
-                    lastMute = None
-
-            elif i['EVENT'] == 'VIDEO_END':
-                if lastVideo != None:
-                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                    if videoTime != None:
-                        videoTime = videoTime + (end - lastVideo)
-                    else:
-                        videoTime = (end - lastVideo)
-                    lastVideo = None
-
-            elif i['EVENT'] == 'STREAM_END':
-                if lastStream != None:
-                    end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                    if streamTime != None:
-                        streamTime = streamTime + (end - lastStream)
-                    else:
-                        streamTime = (end - lastStream)
-                    lastStream = None
-    
-            elif i['EVENT'] == 'CHANNEL_CHANGE':
-                end = datetime.strptime(i['RECORD_TIMESTAMP'], '%Y-%m-%d %H:%M:%S.%f')
-                if channel != None:
-                    channels[channel] = channels[channel] + (end - lastChange)
-                lastChange = end
-                
-                channel = i['AFTER_CHANNEL_ID']
-                if channel not in channels:
-                    channels[channel] = datetime.now() - datetime.now()
-
-        #now get current values if there are any
-        if lastJoin != None:
-            end = datetime.now()
-            if chatTime != None:
-                chatTime = chatTime + (end - lastJoin)
-            else:
-                chatTime = (end - lastJoin)
-            channels[channel] = channels[channel] + (end - lastChange)
-
-        if lastDeafen != None:
-            end = datetime.now()
-            if deafenedTime != None:
-                deafenedTime = deafenedTime + (end - lastDeafen)
-            else:
-                deafenedTime = (end - lastDeafen)
-
-        if lastMute != None:
-            end = datetime.now()
-            if mutedTime != None:
-                mutedTime = mutedTime + (end - lastMute)
-            else:
-                mutedTime = (end - lastMute)
-
-        if lastVideo != None:
-            end = datetime.now()
-            if videoTime != None:
-                videoTime = videoTime + (end - lastVideo)
-            else:
-                videoTime = (end - lastVideo)
-        
-        if lastStream != None:
-            end = datetime.now()
-            if streamTime != None:
-                streamTime = streamTime + (end - lastStream)
-            else:
-                streamTime = (end - lastStream)
-        
-        #now get channel names and format pie chart
-        labels = ()
-        sizes = []
-        for i in channels:
-            for x in message.guild.channels:
-                if int(i) == x.id:
-                    labels = labels + (x.name,)
-            sizes.append(channels[i].total_seconds())
-        
-        totalSize = sum(sizes)
-        for i in sizes:
-            i = i / totalSize
-
-        pieChart, ax1 = matplotlib.pyplot.subplots()
-        ax1.pie(sizes, autopct='%1.2f%%',
-        shadow=True, startangle=90)
-        ax1.axis('equal')
-        ax1.legend(labels = labels)
-
-        #now save the chart
-        directory = os.getcwd()
-        directory = os.path.join(directory, 'User Requested Voice Stats', str(message.guild.id), str(message.author.id))
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
-
-        directory = os.path.join(directory, datetime.now().strftime('%Y%m%d%H%M%S%f'))
-        matplotlib.pyplot.savefig(directory)
-        chart = discord.File(f'{directory}.png')
-        await sendChannelMessage('', testServerVoiceChartChannel, message, attachment = chart)
-        attachmentChannel = client.get_channel(testServerVoiceChartChannel)
-        attachmentMessage = await attachmentChannel.fetch_message(attachmentChannel.last_message_id)
-        
-        if len(attachmentMessage.attachments) > 0:
-            attachment = attachmentMessage.attachments[0].url
-        else:
-             attachment = discord.Embed.Empty
-
-        start = convertUTCToTimezone(datetime.strptime('2020-04-28 01:08:16.990281', '%Y-%m-%d %H:%M:%S.%f'), 'US/Central')
-        start = datetime.strftime(start, '%B %d, %Y at %I:%M %p')
-        chatTime = formatTimeDelta(chatTime)
-        mutedTime = formatTimeDelta(mutedTime)
-        deafenedTime = formatTimeDelta(deafenedTime)
-        streamTime = formatTimeDelta(streamTime)
-        videoTime = formatTimeDelta(videoTime)
-
-        e = discord.Embed(title = f"{user.display_name}'s Voice Stats", description = f'{client.user.name} started tracking voice activity on {start}.')
-        e.set_author(name = client.user.name, icon_url = client.user.avatar_url)
-        e.add_field(name = 'Time in Voice', value = chatTime, inline = True)
-        e.add_field(name = 'Time Muted', value = mutedTime, inline = True)
-        e.add_field(name = 'Time Deafened', value = deafenedTime, inline = True)
-        e.add_field(name = 'Time Streaming', value = streamTime, inline = True)
-        e.add_field(name ='Time in Video', value = videoTime, inline = True)
-
-        e.set_image(url = attachment)
-
-        await sendMessage(message, f'Here are your voice stats {user.mention}', triggeredCommand = trigger, embedItem = e)
-
 #formats a timedelta object into a string with days, hours, minutes, seconds
 def formatTimeDelta(duration):
     if duration == None:
@@ -1215,12 +781,13 @@ async def randomtts(message, trigger):
         targetUserDiscriminator = None
 
     #grab a random message
-    messages = select(f"select distinct id from TTS_LOG A inner join MESSAGE_HISTORY B on A.MESSAGE_ID = B.ID where content <> '' and guild_id = {message.guild.id} and AUTHOR_ID <> {client.user.id}{filter}", trigger)
+    messages = select(f"select distinct MESSAGE_ID, CHANNEL_ID from TTS_LOG A inner join MESSAGE_HISTORY B on A.MESSAGE_ID = B.ID where content <> '' and guild_id = {message.guild.id} and AUTHOR_ID <> {client.user.id}{filter} order by RANDOM() limit 1", trigger)
     if len(messages) > 0:
-        x = random.randrange(0, len(messages), 1)
-        randomMessage = messages[x][0]
-        randomMessage = await message.channel.fetch_message(randomMessage)
+        randomMessage = messages[0][0]
+        channel = await message.guild.fetch_channel(messages[0][1])
+        randomMessage = await channel.fetch_message(randomMessage)
 
+        print(randomMessage.created_at)
         central_timestamp = convertUTCToTimezone(randomMessage.created_at, 'US/Central')
         central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
@@ -1253,96 +820,6 @@ def saveTTS(message):
     cur.execute('insert into TTS_LOG (MESSAGE_ID) values (?)', [message.id])
     con.commit()
     closeConnection(con)
-
-#email myself a summary
-def emailSummary():
-    #need to add logging
-    port = 465
-    #context = ssl.create_default_context()
-    
-    centralTimestamp = convertUTCToTimezone(datetime.now(), 'US/Central')
-
-    message = EmailMessage()
-    message['Subject'] = f'GlobalBot Summary {centralTimestamp}'
-    message['From'] = botEmailAddress
-    message['To'] = developerEmailAddress
-    message.set_content("The summary file is attached.")
-
-    directory = os.getcwd()
-    directory = os.path.join(directory, 'Daily Summary')
-    if not os.path.isdir(directory):
-        os.makedirs(directory)
-    
-    timeStamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
-    fileName = f'GlobalBotDailySummary-{timeStamp}.csv'
-    fullPath = os.path.join(directory, fileName)
-
-    results = select(f"select * from BOT_LOG where LOG_TIME >= date('now', '-1 day')")
-
-    with open(fullPath, 'wt+', encoding = 'utf-16', newline = '') as tempFile:
-        writer = csv.writer(tempFile, quoting = csv.QUOTE_ALL)
-        writer.writerow(['LOG_ID', 'LOG_TIME', 'MESSAGE', 'SERVER', 'SERVER_ID', 'CHANNEL', 'CHANNEL_ID', 'INVOKED_USER', 'INVOKED_USER_ID', 'INVOKED_USER_DISCRIMINATOR', 'INVOKED_USER_DISPLAY_NAME', 'COMMAND', 'ARGUMENTS', 'FUNCTION', 'TARGET_USER', 'TARGET_USER_ID', 'TARGER_USER_DISCRIMINATOR', 'TARGET_USER_DISPLAY_NAME', 'MESSAGE_ID', 'DATA_1', 'DATA_2', 'DATA_3', 'DATA_4', 'DATA_5'])
-        writer.writerows(results)
-
-    with open(fullPath, 'rb') as openFile:
-        contents = openFile.read()
-        ctype, encoding = mimetypes.guess_type(fullPath)
-        if ctype is None or encoding is not None:
-            # No guess could be made, or the file is encoded (compressed), so
-            # use a generic bag-of-bits type.
-            ctype = 'application/octet-stream'
-        maintype, subtype = ctype.split('/', 1)
-        message.add_attachment(contents, maintype = maintype, subtype = subtype, filename = fileName)
-
-    #with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context, certfile=certifi.where()) as server:
-    with smtplib.SMTP_SSL("smtp.gmail.com", port, certfile=certifi.where()) as server:
-        server.login(botEmailAddress, botEmailToken)
-        server.send_message(message)
-        server.quit()
-
-#disconnects from the given voice client
-async def leaveVoice(voiceClient, trigger, channel):
-    addLog(f'Bot leaving {channel.guild.id} voice channel {channel.id}', inspect.currentframe().f_code.co_name, trigger, server = channel.guild.name, serverID = channel.guild.id, voiceChannel = channel.name, voiceChannelID = channel.id, target = channel.id)
-    await voiceClient.disconnect()
-
-#kicks the bot out of the voice channel
-async def leave(message, trigger):
-    if message.guild.voice_client != None:
-        if message.author.voice.channel.id == message.guild.voice_client.channel.id:
-            addLog(f'Leaving {message.guild.id} voice channel {message.author.voice.channel.id} for user {message.author.id}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, voiceChannel = message.author.voice.channel.name, voiceChannelID = message.author.voice.channel.id, target = message.author.voice.channel.id)
-            await leaveVoice(message.guild.voice_client, trigger, message.author.voice.channel)
-        else:
-            await sendMessage(message, f'You cannot kick the bot from a voice channel you are not in.', triggeredCommand = trigger, codeBlock = True, deleteAfter = 10)
-    else:
-        await sendMessage(message, f'The bot is not connected to voice.', triggeredCommand = trigger, codeBlock = True, deleteAfter = 10)
-
-#joins the specified voice channel
-async def joinVoice(voiceClient, trigger, channel):
-    addLog(f'Bot joining {channel.guild.id} voice channel {channel.id}', inspect.currentframe().f_code.co_name, trigger, server = channel.guild.name, serverID = channel.guild.id, voiceChannel = channel.name, voiceChannelID = channel.id, target = channel.id)
-    await voiceClient.connect()
-
-#joins the voice channel the author is in
-async def join(message, trigger):
-    join = False
-    if message.author.voice != None:
-        if message.author.voice.channel != None:
-            if message.guild.voice_client != None:
-                if message.guild.voice_client.channel.id != message.author.voice.channel.id:
-                    await leaveVoice(message.guild.voice_client, trigger, message.guild.voice_client.channel)
-                    join = True
-                else:
-                    await sendMessage(message, f'The bot is already in this voice channel.', triggeredCommand = trigger, codeBlock = True, deleteAfter = 10)
-            else:
-                join = True
-
-            if join:
-                #need to add voice channel to logging
-                addLog(f'Joining {message.guild.id} voice channel {message.author.voice.channel.id} for user {message.author.id}', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, voiceChannel = message.author.voice.channel.name, voiceChannelID = message.author.voice.channel.id, target = message.author.voice.channel.id)
-                await joinVoice(message.author.voice.channel, trigger, channel = message.author.voice.channel)
-        else:
-            await sendMessage(message, f'You cannot make the bot join a voice channel you are not in.', triggeredCommand = trigger, codeBlock = True, deleteAfter = 10)
-    else:
-        await sendMessage(message, f'You cannot make the bot join a voice channel if you are not connected to voice.', triggeredCommand = trigger, codeBlock = True, deleteAfter = 10)
 
 #roll a dice with sides and number of dice specified by the user, default is 1 six sided die
 async def roll(message, trigger):
@@ -1406,48 +883,22 @@ async def roll(message, trigger):
         
         await sendMessage(message, results, triggeredCommand = trigger)
 
-#sends a message as a bot
-async def sendBotMessage(message, trigger):
-    failMessage = 'Invalid arguments. Correct format is !sendbotmessage channel-id message'
-    
-    messageToSend = ''
-    parameters = removeCommand(message.content, f'!{trigger}')
-    parameters = parameters.split()
-
-    if len(parameters) < 2:
-        await sendMessage(message, failMessage, triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
-    else:
-        if not parameters[0].isnumeric():
-            await sendMessage(message, failMessage, triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
-        else:
-            if not float(parameters[0]).is_integer():
-                await sendMessage(message, failMessage, triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
-            else:
-                messageToSend = ' '.join(parameters[1:len(parameters)])
-                if messageToSend.startswith('/tts'):
-                    tts = True
-                    messageToSend = messageToSend.replace('/tts', '')
-                else:
-                    tts = False
-                await sendChannelMessage(messageToSend, parameters[0], message, textToSpeech = tts)
-
 #sends a random file attachment with the specified text from chat
 async def randomAttachmentSearch(message, trigger):
     filter = removeCommand(message.content, f'!{trigger}')
 
     if(filter != ""):
         filter = f" and upper(IMAGE_TEXT) like '%{filter.upper()}%'"
-        attachments = select(f"select message_attachment_history.id, author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id}{filter} and message_attachment_history.id not in (select ATTACHMENT_ID from RANDOM_ATTACHMENT_BLACKLIST where GUILD_ID = {message.guild.id})", trigger = trigger)
+        attachments = select(f"select message_attachment_history.id, author_id, url, created_at from message_attachment_history left join message_history on message_attachment_history.message_id = message_history.id where (lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif') and message_history.guild_id = {message.guild.id}{filter} and message_attachment_history.id not in (select ATTACHMENT_ID from RANDOM_ATTACHMENT_BLACKLIST where GUILD_ID = {message.guild.id}) order by RANDOM() limit 1", trigger = trigger)
         if len(attachments) > 0:
-            index = random.randrange(0, len(attachments), 1)
-            attachment = attachments[index][2]
-            author = message.guild.get_member(int(attachments[index][1]))
+            attachment = attachments[0][2]
+            author = message.guild.get_member(int(attachments[0][1]))
 
-            utc_timestamp = datetime.strptime(attachments[index][3], '%Y-%m-%d %H:%M:%S.%f')
+            utc_timestamp = datetime.strptime(attachments[0][3], '%Y-%m-%d %H:%M:%S.%f')
             central_timestamp = convertUTCToTimezone(utc_timestamp, 'US/Central')
             central_timestamp = datetime.strftime(central_timestamp, '%A %B %d, %Y at %I:%M %p')
 
-            addLog(f'Sending random attachment', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, target = attachments[index][0])
+            addLog(f'Sending random attachment', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, invokedUserDiscriminator = message.author.discriminator, invokedUserDisplayName = message.author.nick, messageID = message.id, target = attachments[0][0])
             await sendMessage(message, f'Courtesy of {author.mention} on {central_timestamp}\n{attachment}', triggeredCommand = trigger)
         else:
             await sendMessage(message, 'No images matching passed filter found.', triggeredCommand = trigger, deleteAfter = 10, codeBlock = True)
@@ -1468,11 +919,7 @@ else:
 token = os.getenv('DISCORD_TOKEN')
 finiteui = os.getenv('DISCORD_ID')
 githubToken = os.getenv('GITHUB_TOKEN')
-botEmailAddress = os.getenv('BOT_EMAIL_ADDRESS')
-botEmailToken = os.getenv('BOT_EMAIL_TOKEN')
-developerEmailAddress = os.getenv('DEVELOPER_EMAIL_ADDRESS')
 testServer = int(os.getenv('DISCORD_TEST_SERVER_ID'))
-testServerVoiceChartChannel = int(os.getenv('DISCORD_TEST_SERVER_VOICE_CHART_CHANNEL_ID'))
 pytesseract.pytesseract.tesseract_cmd = os.getenv('TESSERACT_PATH')
 loop = ''
 launchDate = date.today()
@@ -1527,60 +974,6 @@ async def on_message(message):
                 break
 
 @client.event
-async def on_voice_state_update(member, voiceStateBefore, voiceStateAfter):
-    con = openConnection()
-    cur = con.cursor()
-
-    if (voiceStateBefore.channel == None):
-        beforeChannelID = None
-        beforeChannelName = None
-    else:
-        beforeChannelID = voiceStateBefore.channel.id
-        beforeChannelName = voiceStateBefore.channel.name
-
-    if (voiceStateAfter.channel == None):
-        afterChannelID = None
-        afterChannelName = None
-    else:
-        afterChannelID = voiceStateAfter.channel.id
-        afterChannelName = voiceStateAfter.channel.name
-
-    #set event
-    if (voiceStateBefore.channel != None and voiceStateAfter.channel == None):
-        event = 'LEAVE_VOICE'
-    elif (voiceStateBefore.channel == None and voiceStateAfter.channel != None):
-        event = 'JOIN_VOICE'
-    elif (voiceStateBefore.channel != voiceStateAfter.channel):
-        event = 'CHANNEL_CHANGE'
-    elif (not voiceStateBefore.self_deaf and voiceStateAfter.self_deaf):
-        event = 'DEAFEN'
-    elif (voiceStateBefore.self_deaf and not voiceStateAfter.self_deaf):
-        event = 'UNDEAFEN'
-    elif (not voiceStateBefore.self_mute and voiceStateAfter.self_mute):
-        event = 'MUTE'
-    elif (voiceStateBefore.self_mute and not voiceStateAfter.self_mute):
-        event = 'UNMUTE'
-    elif (not voiceStateBefore.self_stream and voiceStateAfter.self_stream):
-        event = 'STREAM_START'
-    elif (voiceStateBefore.self_stream and not voiceStateAfter.self_stream):
-        event = 'STREAM_END'
-    elif (not voiceStateBefore.self_video and voiceStateAfter.self_video):
-        event = 'VIDEO_START'
-    elif (voiceStateBefore.self_video and not voiceStateAfter.self_video):
-        event = 'VIDEO_END'
-    else:
-        event = 'OTHER'
-
-    addLog(f'{member.guild.id} user {member} voice state update {event}.', inspect.currentframe().f_code.co_name, '', server = member.guild.name, serverID = member.guild.id, invokedUser = member.name, invokedUserID = member.id, invokedUserDiscriminator = member.discriminator, invokedUserDisplayName = member.nick, voiceChannel = afterChannelName, voiceChannelID = afterChannelID)
-
-    record = [datetime.now(), str(member.guild), member.guild.id, member.guild.name, member.id, member.name, member.discriminator, member.display_name, member.bot, member.is_on_mobile(), voiceStateBefore.deaf, voiceStateBefore.mute, voiceStateBefore.self_mute, voiceStateBefore.self_deaf, voiceStateBefore.self_stream, voiceStateBefore.self_video, voiceStateBefore.afk, str(voiceStateBefore.channel), beforeChannelID, beforeChannelName, voiceStateAfter.deaf, voiceStateAfter.mute, voiceStateAfter.self_mute, voiceStateAfter.self_deaf, voiceStateAfter.self_stream, voiceStateAfter.self_video, voiceStateAfter.afk, str(voiceStateAfter.channel), afterChannelID, afterChannelName, event]
-
-    cur.execute('insert into VOICE_ACTIVITY (RECORD_TIMESTAMP, GUILD, GUILD_ID, GUILD_NAME, USER_ID, USER_NAME, USER_DISCRIMINATOR, USER_DISPLAY_NAME, BOT, MOBILE, BEFORE_DEAF, BEFORE_MUTE, BEFORE_SELF_MUTE, BEFORE_SELF_DEAF, BEFORE_SELF_STREAM, BEFORE_SELF_VIDEO, BEFORE_AFK, BEFORE_CHANNEL, BEFORE_CHANNEL_ID, BEFORE_CHANNEL_NAME, AFTER_DEAF, AFTER_MUTE, AFTER_SELF_MUTE, AFTER_SELF_DEAF, AFTER_SELF_STREAM, AFTER_SELF_VIDEO, AFTER_AFK, AFTER_CHANNEL, AFTER_CHANNEL_ID, AFTER_CHANNEL_NAME, EVENT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', record)
-
-    con.commit()
-    closeConnection(con)
-
-@client.event
 async def on_reaction_add(reaction, user):
     #for now just using this to log blacklisting of random attachment attachments with ❌
     #check if this was on a message sent by Global Bot
@@ -1610,7 +1003,7 @@ async def on_reaction_add(reaction, user):
 
                         #build full blacklister string
                         blacklisters = ''
-                        userList = await reaction.users().flatten()
+                        userList = [user async for user in reaction.users()]
                         for i in userList:
                             if blacklisters == '':
                                 blacklisters = str(i.id)
@@ -1644,42 +1037,38 @@ async def on_reaction_add(reaction, user):
 
 #load commands
 commands = []
-commands.append(command('help', 'Displays a list of available commands'))
+
+#admin commands
 commands.append(command('restart', 'Restarts the bot', 'restart', admin = True))
-commands.append(command('addusercommand', 'Adds a new simple message command.', 'addUserCommand', parameters = 'command, message'))
-commands.append(command('deleteusercommand', 'Deletes a user message command.', 'deleteUserCommand', parameters = 'command'))
-commands.append(command('randompin', 'Sends a random pinned message', 'sendRandomPinnedMessage'))
-commands.append(command('kick', 'Kicks a user from voice.', 'kickUser', admin = True, parameters = '@user'))
-commands.append(command('usercommands', 'Displays a list of available user commands', 'listUserCommands'))
 commands.append(command('setstatus', 'Sets the status of the bot', 'setStatus', admin = True, parameters = 'status'))
-commands.append(command('setname', 'Sets the display name of the bot', 'setName'))
-commands.append(command('demote', 'Moves a user to the Tier 1 voice chat.', parameters = '@user'))
 commands.append(command('backup', 'Starts a server backup.', admin = True))
+commands.append(command('setname', 'Sets the display name of the bot', 'setName', admin = True))
 commands.append(command('admincommands', 'Displays a list of available admin commands', 'listAdminCommands', admin = True))
 commands.append(command('kill', 'Ends the bot program', 'kill', admin = True))
 commands.append(command('deletelastbotmessage', 'Deletes the last message sent by the bot', 'deleteLastBotMessage', admin = True))
+commands.append(command('clearbackup', 'Clears the backup of this server.', 'clearBackup', admin = True))
+commands.append(command('update', 'Updates the source code from Github and restarts', admin = True))
+commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', admin = True))
+commands.append(command('guilds', 'Displays a list of guilds the bot is connected to', admin = True))
+
+#regular commands
+commands.append(command('help', 'Displays a list of available commands'))
+commands.append(command('addusercommand', 'Adds a new simple message command.', 'addUserCommand', parameters = 'command, message'))
+commands.append(command('deleteusercommand', 'Deletes a user message command.', 'deleteUserCommand', parameters = 'command'))
+commands.append(command('randompin', 'Sends a random pinned message', 'sendRandomPinnedMessage'))
+commands.append(command('usercommands', 'Displays a list of available user commands', 'listUserCommands'))
 commands.append(command('roulette', 'Kicks a random user from voice chat'))
 commands.append(command('ra', 'Sends a random attachment from the server history', 'randomAttachment', parameters = 'optional-@user, optional-numberOfAttachments'))
 commands.append(command('randomvideo', 'Sends a random youtube video from the server history', 'randomVideo', parameters = 'optional-@user'))
-commands.append(command('move', 'Moves a user into a specified voice channel.', admin = True, parameters = 'channel @user'))
-commands.append(command('clearbackup', 'Clears the backup of this server.', 'clearBackup', admin = True))
-commands.append(command('update', 'Updates the source code from Github and restarts', admin = True))
 commands.append(command('uptime', 'Displays the launch time and uptime of the bot'))
-commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', admin = True))
 commands.append(command('randommessage', 'Sends a random message from the server.', 'randomMessage', parameters = 'optional-@user'))
 commands.append(command('source', 'Sends the link to the bot source code'))
 commands.append(command('getbackup', 'Creates and sends a backup of the server', 'getBackup'))
-commands.append(command('guilds', 'Displays a list of guilds the bot is connected to', admin = True))
-commands.append(command('voicestats', 'Displays voice stats for the specified user.', 'voiceStats', parameters = 'optional-@user'))
 commands.append(command('rtts', 'Sends a random tts message from the server.', 'randomtts', parameters = 'optional-@user'))
 commands.append(command('ruc', 'Triggers a random user command from the server.', 'randomUserCommand'))
-commands.append(command('join', "Makes the bot join the user's current voice channel.", admin = True))
-commands.append(command('leave', "Makes the bot leave voice in this server.", admin = True))
 commands.append(command('roll', 'Rolls dice.', parameters = 'optional-number-of-sides optional-number-of-dice'))
-commands.append(command('sendbotmessage', 'Sends a message as the bot.', "sendBotMessage", admin = True, parameters = 'channel-id message'))
 commands.append(command('rasearch', 'Sends a random attachment from the server history with the passed text in it.', 'randomAttachmentSearch', parameters = 'search-text'))
 commands.append(command('randomspotify', 'Sends a random spotify link from the server history.', 'randomSpotify', parameters = 'optional-@user'))
-#commands.append(command('scheduleusercommand', 'Sends a user command automatically at the passed time and interval.', 'scheduleUserCommand', parameters = 'user-command, interval-type (hour, day, week, month, year), interval, start YYYY-MM-DD HH:MM'))
 
 loadUserCommands()
 
