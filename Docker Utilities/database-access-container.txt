@@ -1,0 +1,14 @@
+Creates and runs a SQLLite3 Container with the database volumn mounted.
+This is used for running queries.
+
+Image: https://hub.docker.com/r/keinos/sqlite3
+
+docker pull keinos/sqlite3:latest
+docker run --name globalbot-db-access -v globalbot-db:/database -w /database keinos/sqlite3
+
+Then CD to the database path:
+cd database
+
+And Access the database:
+sqlite3
+.OPEN GlobalBotData.db

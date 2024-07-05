@@ -1,0 +1,2 @@
+Copy Code into container if nothing else has changed:
+docker cp "C:\Server\GlobalBot\Docker\GlobalBot.py" globalbot:.

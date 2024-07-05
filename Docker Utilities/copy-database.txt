@@ -1,0 +1,5 @@
+Copy Database Into Container:
+docker cp "D:\Server Files\GlobalBot\Database\GlobalBotData.db" globalbot:/database
+
+Copy Database Out of Container:
+docker cp globalbot:/database/GlobalBotData.db "D:\Server Files\GlobalBot\Database"
