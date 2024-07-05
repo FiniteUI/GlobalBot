@@ -168,7 +168,7 @@ def convertUTCToTimezone(utc_timestamp, timezone):
 def updateDatabaseFlags():
     con = openConnection()
     cur = con.cursor()
-    cur.execute("update MESSAGE_ATTACHMENT_HISTORY set IMAGE = 1 where lower(URL) like '%.png' or lower(URL) like '%.jpg' or lower(URL) like '%.jpeg' or lower(URL) like '%.mp4' or lower(URL) like '%.gif' or lower(URL) like '%.apng' or lower(URL) like '%.avif' or lower(URL) like '%.svg' or lower(URL) like '%.webp' or lower(URL) like '%.heic' or lower(URL) like '%.tif' or lower(URL) like '%.tiff' or lower(URL) like '%.bmp';")
+    cur.execute("update MESSAGE_ATTACHMENT_HISTORY set IMAGE = 1 where lower(FILENAME) like '%.png' or lower(FILENAME) like '%.jpg' or lower(FILENAME) like '%.jpeg' or lower(FILENAME) like '%.mp4' or lower(FILENAME) like '%.gif' or lower(FILENAME) like '%.apng' or lower(FILENAME) like '%.avif' or lower(FILENAME) like '%.svg' or lower(FILENAME) like '%.webp' or lower(FILENAME) like '%.heic' or lower(FILENAME) like '%.tif' or lower(FILENAME) like '%.tiff' or lower(FILENAME) like '%.bmp';")
     cur.execute("update MESSAGE_HISTORY set YOUTUBE = 1 where (lower(content) like '%youtube.com%' or '%youtu.be%');")
     cur.execute("update MESSAGE_HISTORY set SPOTIFY = 1 where (lower(content) like '%open.spotify.com/%');")
     con.commit()
@@ -405,8 +405,6 @@ async def backup(message = None, trigger = None, silent = False, fromMessage = T
     con.commit()
     closeConnection(con)
 
-    updateDatabaseFlags()
-
     totaltime = time.time() - startTime
     if not silent:
         await sendMessage(message, f'Server {guild.name} backed up in {totaltime} seconds.', triggeredCommand = trigger, codeBlock = True)
@@ -476,6 +474,7 @@ async def refresh(message = None, trigger = None, silent = False):
     if len(client.guilds) > 0:
         for guild in client.guilds:
             await backup(trigger = 'refresh', silent = True, fromMessage = False, overrideGuild = guild)
+    updateDatabaseFlags()
     if not silent:
         totaltime = time.time() - startTime
         await sendMessage(message, f"Global Refresh finished in {totaltime} seconds.", textToSpeech = False, triggeredCommand = trigger, codeBlock = True)

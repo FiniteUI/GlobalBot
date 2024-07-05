@@ -9,7 +9,7 @@
 #run using volume
 #docker run --name globalbot -v globalbot-db:/database --restart=unless-stopped globalbot-image
 
-FROM python:3.11
+FROM python:3.11-slim
 
 COPY .env .
 COPY GlobalBot.py .
