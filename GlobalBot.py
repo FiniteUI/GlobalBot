@@ -4,14 +4,12 @@ import os
 import discord
 import sqlite3
 import inspect
-import sys
 import random
 import re
 import time
 from datetime import datetime
 from datetime import date
 from dotenv import load_dotenv
-from github import Github
 from urlextract import URLExtract
 import asyncio
 import threading
@@ -174,14 +172,14 @@ def updateDatabaseFlags():
     con.commit()
     closeConnection(con)
 
-#add the regresh into the main event loop
-def callRefresh():
+#add the fullbackup timer
+def dailyBackup():
     global loop
     if date.today() != launchDate:
-        thisRefresh = asyncio.run_coroutine_threadsafe(refresh(silent = True), loop)
+        thisRefresh = asyncio.run_coroutine_threadsafe(fullBackup(silent = True), loop)
         thisRefresh.result()
     else:
-        timer = threading.Timer(refreshInterval, callRefresh)
+        timer = threading.Timer(backupInterval, dailyBackup)
         timer.start()
 
 #check if the test.txt file exists
@@ -282,20 +280,6 @@ async def sendMessage(triggerMessage, sendMessage, textToSpeech = False, deleteA
             await triggerMessage.channel.send(sendMessage, tts = textToSpeech, delete_after = deleteAfter, embed = embedItem, file = attachment)
 
 #admin commands
-
-#restart the bot
-async def restart(message = None, trigger = None, silent = False, fromMessage = True):
-    if not fromMessage:
-        addLog(f'Restarting bot', inspect.currentframe().f_code.co_name, trigger, invokedUser = client.user.name, invokedUserID = client.user.id)
-    else:
-        addLog(f'Restarting bot', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, messageID = message.id)
-    
-    if not silent:
-        await sendMessage(message, 'Restarting bot...', triggeredCommand = trigger, codeBlock = True)
-
-    os.execlp('python', '-m', 'C:/GlobalBot/GlobalBot.py')
-
-    await kill(message, trigger)
 
 #sets the bots status
 async def setStatus(message, trigger):
@@ -430,14 +414,6 @@ async def listAdminCommands(message, trigger):
         x = x + f'''**!{i.trigger.ljust(20)}** - \t{i.fullDescription}\n'''
     await sendMessage(message, x, triggeredCommand = trigger)
 
-#ends the bot program
-async def kill(message, trigger):
-    addLog(f'Killing bot process...', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, messageID = message.id)
-    await sendMessage(message, 'Killing bot process...', triggeredCommand = trigger, codeBlock = True)
-    await asyncio.sleep(30)
-    sys.stdout.flush()
-    await exit()
-
 #deletes the last bot message
 async def deleteLastBotMessage(message, trigger):
     #messages = await message.channel.history(limit = 100).flatten()
@@ -450,24 +426,8 @@ async def deleteLastBotMessage(message, trigger):
             return
     await sendMessage(message, 'No bot messages found in the last 100 messages',  deleteAfter = 20, triggeredCommand = trigger, codeBlock = True)
 
-#downloads the newest version of the source from github
-async def update(message, trigger):
-    await sendMessage(message, 'Updating bot code...', triggeredCommand = trigger, codeBlock = True)
-    addLog(f'Updating bot source code...', inspect.currentframe().f_code.co_name, trigger, server = message.guild.name, serverID = message.guild.id, channel = message.channel.name, channelID = message.channel.id, invokedUser = message.author.name, invokedUserID = message.author.id, messageID = message.id)          
-
-    g = Github(githubToken)
-    repo = g.get_repo('FiniteUI/GlobalBot')
-    contents = repo.get_contents("GlobalBot.py")
-    data = contents.decoded_content.decode('UTF-8')
-
-    f = open('GlobalBot.py', 'w+', encoding = 'UTF-8')
-    f.write(data)
-    f.close() 
-
-    await restart(message, trigger)
-
-#nightly refresh, backup, update, restart
-async def refresh(message = None, trigger = None, silent = False):
+#nightly backup
+async def fullBackup(message = None, trigger = None, silent = False):
     if not silent:
         startTime = time.time()
         await sendMessage(message, "Starting Global Refresh...", textToSpeech = False, triggeredCommand = trigger, codeBlock = True)
@@ -478,7 +438,6 @@ async def refresh(message = None, trigger = None, silent = False):
     if not silent:
         totaltime = time.time() - startTime
         await sendMessage(message, f"Global Refresh finished in {totaltime} seconds.", textToSpeech = False, triggeredCommand = trigger, codeBlock = True)
-    await restart(message, trigger = 'refresh', silent = silent, fromMessage = False)
 
 #regular commands
 
@@ -805,7 +764,7 @@ githubToken = os.getenv('GITHUB_TOKEN')
 testServer = int(os.getenv('DISCORD_TEST_SERVER_ID'))
 loop = ''
 launchDate = date.today()
-refreshInterval = 300
+backupInterval = 300
 launchTime = datetime.now()
 players = {}
 
@@ -921,16 +880,13 @@ async def on_reaction_add(reaction, user):
 commands = []
 
 #admin commands
-commands.append(command('restart', 'Restarts the bot', 'restart', admin = True))
 commands.append(command('setstatus', 'Sets the status of the bot', 'setStatus', admin = True, parameters = 'status'))
 commands.append(command('backup', 'Starts a server backup.', admin = True))
 commands.append(command('setname', 'Sets the display name of the bot', 'setName', admin = True))
 commands.append(command('admincommands', 'Displays a list of available admin commands', 'listAdminCommands', admin = True))
-commands.append(command('kill', 'Ends the bot program', 'kill', admin = True))
 commands.append(command('deletelastbotmessage', 'Deletes the last message sent by the bot', 'deleteLastBotMessage', admin = True))
 commands.append(command('clearbackup', 'Clears the backup of this server.', 'clearBackup', admin = True))
-commands.append(command('update', 'Updates the source code from Github and restarts', admin = True))
-commands.append(command('refresh', 'Runs a backup of every guild the bot is in, then restarts the bot', admin = True))
+commands.append(command('fullbackup', 'Runs a backup of every guild the bot is in', 'fullBackup', admin = True))
 commands.append(command('guilds', 'Displays a list of guilds the bot is connected to', admin = True))
 
 #regular commands
@@ -953,7 +909,7 @@ commands.append(command('randomspotify', 'Sends a random spotify link from the s
 loadUserCommands()
 
 #launch the refresh timer
-timer = threading.Timer(refreshInterval, callRefresh)
+timer = threading.Timer(backupInterval, dailyBackup)
 timer.start()
 
 #run the bot            

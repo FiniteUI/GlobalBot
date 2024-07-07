@@ -7,7 +7,7 @@
 #docker run --name globalbot --mount type=bind,source="D:\GlobalBot Database",target=/database --restart=unless-stopped globalbot-image
 
 #run using volume
-#docker run --name globalbot -v globalbot-db:/database --restart=unless-stopped globalbot-image
+#docker run --name globalbot -v globalbot-db:/database --restart=unless-stopped --network host globalbot-image
 
 FROM python:3.11-slim
 
