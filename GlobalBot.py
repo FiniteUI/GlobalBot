@@ -7,8 +7,7 @@ import inspect
 import random
 import re
 import time
-from datetime import datetime
-from datetime import date
+from datetime import datetime, date
 from dotenv import load_dotenv
 from urlextract import URLExtract
 import asyncio
